@@ -25,8 +25,6 @@ file(GLOB_RECURSE LIB_SOURCES
 set(LIBRARY_NAME Components)
 add_library(${LIBRARY_NAME} STATIC ${LIB_SOURCES})
 target_link_libraries(${LIBRARY_NAME} Common)
-
 set_target_properties( ${LIBRARY_NAME} PROPERTIES OUTPUT_NAME_DEBUG ${LIBRARY_NAME}D )
 set_target_properties( ${LIBRARY_NAME} PROPERTIES OUTPUT_NAME_RELEASE ${LIBRARY_NAME})
-
 target_link_libraries( ${LIBRARY_NAME} Common )
