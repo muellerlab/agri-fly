@@ -43,23 +43,11 @@
 #include <opencv/cv.hpp>
 #include "Components/DepthImagePlanner/DepthImagePlanner.hpp"
 
-//OpenVins includes
-//#include "pc_msckf.h"
-
 using namespace std;
 using namespace Offboard;
 using namespace CommonMath;
 using namespace RapidQuadrocopterTrajectoryGenerator;
 using namespace RectangularPyramidPlanner;
-
-//typedef struct {
-//  int w;
-//  int h;
-//  double depth_scale;
-//  double f;
-//  double cx;
-//  double cy;
-//} camera_intrinsics_t;
 
 enum {
   CTRL_ONBOARD_UWB,
@@ -86,7 +74,6 @@ string toCSV(const std::vector<float> v) {
 }
 
 class ExplorationCost {
-
  public:
   ExplorationCost(Vec3d estPos, Rotationd estAtt, Vec3d goalWorld,
                   Rotationd const depthCamAtt) {
@@ -95,13 +82,11 @@ class ExplorationCost {
     _goalWorld = goalWorld;
     _depthCamAtt = depthCamAtt;
   }
-
   void updateWorld(Vec3d estPos, Rotationd estAtt, Vec3d goalWorld) {
     _estPos = estPos;
     _estAtt = estAtt;
     _goalWorld = goalWorld;
   }
-
   static double GetTrajCostWrapper(
       void *ptr2obj,
       RapidQuadrocopterTrajectoryGenerator::RapidTrajectoryGenerator &traj) {
@@ -136,12 +121,7 @@ int main(void) {
 //depthImageSetting
   // Far and near clipping plane distance in Unity
   double far = 10.0;
-
   double depthScale = far / (256.0);  //output depth image in uint_8
-//  Rotationd const depthCamAtt = Rotationd::FromEulerYPR(-90.0 * M_PI / 180.0,
-//                                                        0 * M_PI / 180.0,
-//                                                        -90 * M_PI / 180.0);
-
   Rotationd const depthCamAtt = Rotationd::FromEulerYPR(-90.0 * M_PI / 180.0,
                                                         0 * M_PI / 180.0,
                                                         -90 * M_PI / 180.0);
@@ -163,13 +143,12 @@ int main(void) {
   const double startFlightTime = 5.0f;  // time for rappids to begin
   const double endTime = 8.0f;  //[s]  total simulation time
   ManualTimer simTimer;  // Tracks time in the simulation
-  HardwareTimer globalTimer;  // Tracks the actual time (in the real world)
+  HardwareTimer globalTimer;  // Tracks the actual wall clock time (in the real world)
 
 //Create the quadcopter:
   uint8_t vehicleId = 1;  //For UWB network, commands, etc.
   Onboard::QuadcopterConstants::QuadcopterType quadcopterType =
       Onboard::QuadcopterConstants::GetVehicleTypeFromID(vehicleId);
-
   Onboard::QuadcopterConstants vehConsts(quadcopterType);
 //Create the quadcopter:
   double const mass = vehConsts.mass;  //[kg]
@@ -245,9 +224,7 @@ int main(void) {
   est.reset(
       new MocapStateEstimator(&simTimer, vehicleId,
                               timeDelayOffboardControlLoopEstimate));
-
   QuadcopterController ctrl;
-
   SafetyNet safetyNet;
   ctrl.SetParameters(vehConsts.posControl_natFreq, vehConsts.posControl_damping,
                      vehConsts.attControl_timeConst_xy,
@@ -267,7 +244,6 @@ int main(void) {
   Vec3d desiredAngVel(0, 0, 0);
   double desiredThrust;
   double desYawAngleDeg = 0;  //[deg]
-
   Vec3d const goalWorld(120.0, 0.0, 3.5);
 
 //keep track of last set of inputs
@@ -417,7 +393,6 @@ int main(void) {
     quad->Run();
     simTimer.AdvanceMicroSeconds(uint64_t(dt * 1e6));
 
-    // TODO: @Dylan set the below values in unreal for the quad position and attitude
     Vec3d simTruthPos(quad->GetPosition());
     Rotationd simTruthAtt(quad->GetAttitude());
 
@@ -487,7 +462,6 @@ int main(void) {
       timerTelemetryLoop.AdjustTimeBySeconds(-periodTelemetryLoop);
       TelemetryPacket::data_packet_t dataPacketRaw1, dataPacketRaw2;
       quad->GetTelemetryDataPackets(dataPacketRaw1, dataPacketRaw2);
-
       TelemetryPacket::TelemetryPacket dataPacket;
       TelemetryPacket::DecodeTelemetryPacket(dataPacketRaw1, dataPacket);
       TelemetryPacket::DecodeTelemetryPacket(dataPacketRaw2, dataPacket);
