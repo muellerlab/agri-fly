@@ -1,3 +1,0 @@
-[submodule "AirSim"]
-	path = AirSim
-	url = git@github.com:muellerlab/AIFS_AirSim.git
