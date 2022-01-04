@@ -9,9 +9,9 @@ We expect this project to run on Ubuntu environments. We have tested it on 18.04
 ## 1. Install Prerequisite Libraries
 The project is based on following common libraries. Make sure you have them installed on your computer. 
 1. [Boost Library](https://www.boost.org/)
-2. [Open CV 3.2](https://opencv.org/opencv-3-2/) ``
+2. [Open CV 3.2](https://opencv.org/opencv-3-2/) 
 3. [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page) 
-4. 
+
 ## 2. Install Unity
 Unity editor is needed to run the simulated environment. 
 An installation guide for Unity on Linux environment can be found [here](https://docs.unity3d.com/Manual/GettingStartedInstallingHub.html).
@@ -84,12 +84,10 @@ Now the code is ready to be compiled.
 * Then run the compiled Rappids_Simulator executive. You should see the vehicle taking off and trying to autonomously fly through the almond orchard.
 
 
-# Upcoming update
+# Upcoming Updates
 
-Current version is a basic demonstration showing the pipeline connecting the physics code and controller code with the AirSim. It is single-threaded and runs relatively slow.
-
+Current version is a basic demonstration showing the pipeline connecting the physics & controller code with the AirSim.
 We are expecting to release a newer version that enables different parts of the simulation to communicate via ROS shortly. 
-
 
 # Structure Overview
 ![image](https://user-images.githubusercontent.com/39609430/147999038-ac5ea2ee-9f68-4a50-ad56-389cf1e7840f.png)
