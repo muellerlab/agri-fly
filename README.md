@@ -6,15 +6,89 @@ We expect this project to run on Ubuntu environments. We have tested it on 18.04
 
 # Installation Guide
 
-## Install Prerequisite Libraries
+## 1. Install Prerequisite Libraries
 The project is based on following common libraries. Make sure you have them installed on your computer. 
 1. [Boost Library](https://www.boost.org/)
-2. [Open CV 3.2](https://opencv.org/opencv-3-2/)
-3. [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page)
+2. [Open CV 3.2](https://opencv.org/opencv-3-2/) ``
+3. [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page) ``sudo apt-get install libeigen3-dev``
 
-## Install Unity
+## 2. Install Unity
 Unity editor is needed to run the simulated environment. 
 An installation guide for Unity on Linux environment can be found [here](https://docs.unity3d.com/Manual/GettingStartedInstallingHub.html).
+
+## 3. Clone Repository and Setup AirSim
+Go to the directory where you want to install the code.
+
+`git clone https://github.com/muellerlab/agri-fly` 
+
+`cd AIFS_AirSim`
+
+`./setup.sh`
+
+`./build.sh`
+
+Then navigate to the folder including Unity wrapper code. 
+
+`cd AirSim/Unity`
+
+`./build.sh`
+
+A detailed instruction for setting up AirSim project can also be found: 
+
+`https://microsoft.github.io/AirSim/build_linux/`
+
+`https://microsoft.github.io/AirSim/Unity/`
+
+## 4. Download Code and AirSim Setup
+Go to the directory where you want to install the code.
+
+`git clone https://github.com/muellerlab/agri-fly` 
+
+`cd AIFS_AirSim`
+
+`./setup.sh`
+
+`./build.sh`
+
+## 5. Setup Simulator Code Compilation
+We recommend using cmake with graphic interface if you are not familiar with compiler setup.
+
+* to get it: run `sudo apt install cmake-qt-gui`
+
+* then open the app:
+
+* where is the source code: ~/Documents/Repos/LabCode/GeneralCode
+
+* where to build the binaries: ~/Documents/Repos/LabCode/GeneralCode/Build (this will ask to make new directory and say yes)
+
+* Click Configure, then: 
+
+* Select "Unix makefiles" and "Use default native compilers" 
+
+* Click configure until the red items disappear 
+
+* Click Generate 
+
+Now the code is ready to be compiled.
+
+# Quick Startup Guide
+
+* Start Unity Hub, import the argricultral world via selecting the folder 'AIFS_AirSim\Unity\UnityDemo', and then hit the OK button.
+
+* Click on the new project which showed up in the Unity Hub menu to open it in Unity.
+
+* In the bottom pane, click on Projects->Assets->Scenes. Then, Double-click on SimModeSelector. Choose the Drone Demo.
+
+* Hit the play button to start the simulation (and hit play again to stop the simulation. 
+
+* Then run the compiled Rappids_Simulator executive. You should see the vehicle taking off and trying to autonomously fly through the almond orchard.
+
+
+# Upcoming update
+
+Current version is a basic demonstration showing the pipeline connecting the physics code and controller code with the AirSim. It is single-threaded and runs relatively slow.
+
+We are expecting to release a newer version that enables different parts of the simulation to communicate via ROS shortly. 
 
 
 # Structure Overview
@@ -28,10 +102,6 @@ An installation guide for Unity on Linux environment can be found [here](https:/
 3. Rendering of the argricultral world is implemented with [Unity](https://unity.com/). The tool is not open source and not free to use, but Unity provides personal/educator license that can be easily obtained without charge. 
 
 4. The visualization and sensor fabrication is built upon the [AirSim](https://microsoft.github.io/AirSim/) and its pilot Unity-based simulation demo. 
-
-
-
-
 
 
 # Acknowledgement
