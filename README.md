@@ -8,9 +8,9 @@ We expect this project to run on Ubuntu environments. We have tested it on 18.04
 
 ## 1. Install Prerequisite Libraries
 The project is based on following common libraries. Make sure you have them installed on your computer. 
-1. [Boost Library](https://www.boost.org/)
+1. [Boost Library](https://www.boost.org/) | `sudo apt-get install libeigen3-dev``
 2. [Open CV 3.2](https://opencv.org/opencv-3-2/) ``
-3. [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page) ``sudo apt-get install libeigen3-dev``
+3. [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page) | `sudo apt-get install libeigen3-dev``
 
 ## 2. Install Unity
 Unity editor is needed to run the simulated environment. 
