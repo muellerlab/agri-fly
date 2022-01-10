@@ -13,9 +13,8 @@ set_target_properties(${APPLICATION_NAME} PROPERTIES OUTPUT_NAME_RELEASE ${APPLI
 
 add_dependencies(${APPLICATION_NAME} Common Components)
 
-# Swap this for your root for the airsim library
-set(AIRSIM_ROOT /home/clark/Documents/Repos/LabCode/agri-fly/AIFS_AirSim) 
-
+# If the relative setup does not work. Swap for your absolute path to the AIFS_AirSim Folder)
+set(AIRSIM_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../../AIFS_AirSim) 
 add_subdirectory("${AIRSIM_ROOT}/cmake/rpclib_wrapper" rpclib_wrapper)
 add_subdirectory("${AIRSIM_ROOT}/cmake/AirLib" AirLib)
 add_subdirectory("${AIRSIM_ROOT}/cmake/MavLinkCom" MavLinkCom)
