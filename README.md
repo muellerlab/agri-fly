@@ -71,7 +71,7 @@ We recommend using cmake with graphic interface if you are not familiar with com
 
 Now the code is ready to be compiled.
 
-# Quick Startup Guide
+# Quick Startup Guide For Single-thread Simulation
 
 * Start Unity Hub, import the argricultral world via selecting the folder 'AIFS_AirSim\Unity\UnityDemo', and then hit the OK button.
 
