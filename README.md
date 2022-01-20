@@ -84,6 +84,10 @@ Now the code is ready to be compiled.
 * Then run the compiled Rappids_Simulator executive. You should see the vehicle taking off and trying to autonomously fly through the almond orchard.
 
 
+# Quick Startup Guide For Single-thread Simulation
+See readme.md inside the AIFS_ROS folder.
+
+
 # Upcoming Updates
 
 Current version is a basic demonstration showing the pipeline connecting the physics & controller code with the AirSim.
