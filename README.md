@@ -1,8 +1,8 @@
 # Flight Simulator in Agricultural Environment
 This project is a simulator for autonomous flight in agricultural environment. 
-It can be used to test different strategies of autonomous flights in simulated environments containing high-fidelity argricultral features. 
+It aims to help test different strategies of autonomous flights in simulated environments containing high-fidelity argricultral features. 
 
-We expect this project to run on Ubuntu environments. We have tested it on 18.04 and it should in theory run on future versions as well (Though it has not been tested).
+We created this project with Ubuntu environments. We recommend you to run it on Ubuntu 18.04 as the current AirSim version is not fully tested on future ubuntu distributions.
 
 # Installation Guide
 
@@ -18,7 +18,6 @@ An installation guide for Unity on Linux environment can be found [here](https:/
 
 ## 3. Clone Repository and Setup AirSim
 Go to the directory where you want to install the code.
-
 `git clone https://github.com/muellerlab/agri-fly` 
 
 `cd AIFS_AirSim`
@@ -27,7 +26,7 @@ Go to the directory where you want to install the code.
 
 `./build.sh`
 
-Then navigate to the folder including Unity wrapper code. 
+Then navigate to the folder containing Unity wrapper code. 
 
 `cd AirSim/Unity`
 
@@ -39,18 +38,8 @@ A detailed instruction for setting up AirSim project can also be found:
 
 `https://microsoft.github.io/AirSim/Unity/`
 
-## 4. Download Code and AirSim Setup
-Go to the directory where you want to install the code.
 
-`git clone https://github.com/muellerlab/agri-fly` 
-
-`cd AIFS_AirSim`
-
-`./setup.sh`
-
-`./build.sh`
-
-## 5. Setup Simulator Code Compilation
+## 4. Setup Simulator Code Compilation
 We recommend using cmake with graphic interface if you are not familiar with compiler setup.
 
 * to get it: run `sudo apt install cmake-qt-gui`
@@ -77,21 +66,20 @@ Now the code is ready to be compiled.
 
 * Click on the new project which showed up in the Unity Hub menu to open it in Unity.
 
-* In the bottom pane, click on Projects->Assets->Scenes. Then, Double-click on SimModeSelector. Choose the Drone Demo.
+* In the bottom pane, click on Projects->Assets->Scenes. Then, double-click on SimModeSelector. Choose the Drone-Demo.
 
 * Hit the play button to start the simulation (and hit play again to stop the simulation. 
 
 * Then run the compiled Rappids_Simulator executive. You should see the vehicle taking off and trying to autonomously fly through the almond orchard.
 
 
-# Quick Startup Guide For Single-thread Simulation
+# Quick Startup Guide For ROS Simulation
 See readme.md inside the AIFS_ROS folder.
 
 
-# Upcoming Updates
-
+<!-- # Upcoming Updates
 Current version is a basic demonstration showing the pipeline connecting the physics & controller code with the AirSim.
-We are expecting to release a newer version that enables different parts of the simulation to communicate via ROS shortly. 
+We are expecting to release a newer version that enables different parts of the simulation to communicate via ROS shortly.  -->
 
 # Structure Overview
 ![image](https://user-images.githubusercontent.com/39609430/147999038-ac5ea2ee-9f68-4a50-ad56-389cf1e7840f.png)
