@@ -137,8 +137,6 @@ catkin_package(
 # include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
-  src/crazyradio
-  src/mocap_optitrack/include
 )
 
 ## Declare a C++ library
@@ -156,23 +154,6 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/hiperlab_hardware.cpp)
-
-add_executable(crazyradio 
-  src/crazyradio/main.cpp
-  src/crazyradio/client.c 
-  src/crazyradio/radio.c
-)
-target_link_libraries(crazyradio ${catkin_LIBRARIES} ${LibUSB_LIBRARIES})
-add_dependencies(crazyradio ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-  
-add_executable(mocap_optitrack 
-  src/mocap_optitrack/src/mocap_config.cpp
-  src/mocap_optitrack/src/mocap_datapackets.cpp
-  src/mocap_optitrack/src/mocap_node.cpp
-  src/mocap_optitrack/src/socket.cpp
-)
-target_link_libraries(mocap_optitrack ${catkin_LIBRARIES} ${LibUSB_LIBRARIES})
-add_dependencies(mocap_optitrack  ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_executable(joystick_control 
   src/joystick/joystickmain.cpp
@@ -239,4 +220,3 @@ add_dependencies(keyboard_control  ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-roslaunch_add_file_check(src/mocap_optitrack/launch)
