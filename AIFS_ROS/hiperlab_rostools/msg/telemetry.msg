@@ -1,0 +1,16 @@
+Header header
+uint8 vehicleID
+uint8 type
+uint8 packetNumber
+uint8 seqNum
+float64[3] accelerometer
+float64[3] rateGyro
+float64[3] position
+float64[3] attitude
+float64[3] velocity
+float64[3] attitudeYPR
+float64[4] motorForces
+float64[6] debugVals
+float64 batteryVoltage
+uint8 panicReason
+uint8 warnings

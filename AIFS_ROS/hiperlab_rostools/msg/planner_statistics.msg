@@ -1,0 +1,7 @@
+bool  trajectory_found
+int64 NumCollisionFree
+int64 NumPyramids
+int64 NumVelocityChecks
+int64 NumCollisionChecks
+int64 NumCostChecks 
+int64 NumTrajectoriesGenerated

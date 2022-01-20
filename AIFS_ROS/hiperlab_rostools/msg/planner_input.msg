@@ -1,0 +1,5 @@
+uint64 random_seed 
+geometry_msgs/Vector3 velocity_D
+geometry_msgs/Vector3 acceleration_D
+geometry_msgs/Vector3 gravity_D
+geometry_msgs/Vector3 goal_W

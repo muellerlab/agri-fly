@@ -1,0 +1,6 @@
+uint64 trajectory_id 
+hiperlab_rostools/planner_statistics planner_statistics
+hiperlab_rostools/polynomial_trajectory trajectory_parameters_D
+
+time trajectory_reset_time
+geometry_msgs/Transform trajectory_transform

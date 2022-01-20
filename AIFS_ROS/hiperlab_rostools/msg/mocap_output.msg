@@ -1,0 +1,12 @@
+Header header
+int64 vehicleID
+float64 posx
+float64 posy
+float64 posz
+float64 attyaw
+float64 attpitch
+float64 attroll
+float64 attq0
+float64 attq1
+float64 attq2
+float64 attq3
