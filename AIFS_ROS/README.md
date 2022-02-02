@@ -81,4 +81,8 @@ By echo you have to see something like:
 
 * To end the simulation, kill the ROS nodes first before you stop the Unity simulated world.
 
+# 3- Record bag files
+* Copy and paste `rosbag_record_airsim.sh` to places you want to record data at.
+* Run 'rosbag_record_airsim.sh' to record ROS bag files.
+
 
