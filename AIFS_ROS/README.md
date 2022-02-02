@@ -26,10 +26,10 @@ This is just to see you can build projects using python catkin tools. NOTE: If y
 Now `cd` into your ROS ws folder, and make the needed symlinks between the simulator and the work space
 
 * `ln -s {Path to your project folder}/AIFS_ROS/hiperlab_common/ src/`
-* `ln -s {Path to your project folder}/AIFS_ROS//hiperlab_components/ src/`
-* `ln -s {Path to your project folder}/AIFS_ROS//ROS/hiperlab_rostools/ src/`
-* `ln -s {Path to your project folder}/AIFS_ROS//hiperlab_hardware/ src/`
-* `ln -s {Path to your project folder}/AIFS_ROS//makeProjects_AIFS.sh `
+* `ln -s {Path to your project folder}/AIFS_ROS/hiperlab_components/ src/`
+* `ln -s {Path to your project folder}/AIFS_ROS/hiperlab_rostools/ src/`
+* `ln -s {Path to your project folder}/AIFS_ROS/hiperlab_hardware/ src/`
+* `ln -s {Path to your project folder}/AIFS_ROS/makeProjects_AIFS.sh `
 
 Then we need to link the source files for common & components:
 * `ln -s {Path to your project folder}/Common/ src/hiperlab_common/src`
