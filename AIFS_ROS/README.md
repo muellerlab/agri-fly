@@ -53,3 +53,32 @@ To make sure your workspace is properly overlayed by the setup script, make sure
 
 By echo you have to see something like:
 `/home/your_username/catkin_ws/src/hiperlab_common:/home/your_username/catkin_ws/src/hiperlab_components:/home/your_username/catkin_ws/src/hiperlab_rostools:/home/your_username/catkin_ws/src/hiperlab_hardware:/opt/ros/kinetic/share`
+
+
+
+--------------------------------------------------------------------------------------------
+# Quick startup guide
+
+# 1- Start the simulator in Unity
+* Start Unity Hub, import the argricultral world via selecting the folder 'AIFS_AirSim\Unity\UnityDemo', and then hit the OK button.
+
+* Click on the new project which showed up in the Unity Hub menu to open it in Unity.
+
+* In the bottom pane, click on Projects->Assets->Scenes. Then, double-click on SimModeSelector. Choose the Drone-Demo.
+
+* Hit the play button to start.
+
+# 2- Run the ROS simulator
+* Start ROS by running `roscore`
+
+* Start the AirSim Bridge node by running `rosrun hiperlab_rostools air_sim_bridge`. The AirSim Bridge receives synthesized camera images from Unity and convert it to ROS compatible messages.
+
+* Start the simulator node by running `rosrun hiperlab_rostools simulator 1` change `1` to other vehicle IDs if you are not running with the default vehicle. 
+
+* Start the RAPPIDS planner and controller node `rosrun hiperlab_rostools quad_rappids_planner_controller 1`. Again, change `1` to your vehicle IDs if you are running with a different vehicle.   
+
+* Following the instruction given by the RAPPIDS node and hit 's' button on the keyboard multiple times to start the flight controller.
+
+* To end the simulation, kill the ROS nodes first before you stop the Unity simulated world.
+
+
