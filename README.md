@@ -1,4 +1,8 @@
 # Flight Simulator in Agricultural Environment
+![agri_fly_pic](https://user-images.githubusercontent.com/39609430/152670561-484cbd9d-8def-4851-97e0-e5c4ddbf6a1d.png)
+
+
+
 This project is a simulator for autonomous flight in agricultural environment. 
 It aims to help test different strategies of autonomous flights in simulated environments containing high-fidelity argricultral features. 
 
