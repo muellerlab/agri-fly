@@ -53,6 +53,8 @@ class ImagePollAgent {
   unsigned imageCount = 0;
   std::shared_ptr<Simulation::SimulationObject6DOF> vehicle;
   std::shared_ptr<image_transport::Publisher> pubDepthImage;
+  std::shared_ptr<ros::Publisher> pubImageReceivedFlag;  //Publish a flag indicate that the image has been received. This unlocks the
+
   std::shared_ptr<MultirotorRpcLibClient> client;
   ofstream imageFetchlog;
   void initiateAirSimClient() {
@@ -73,11 +75,10 @@ class ImagePollAgent {
         client->simGetImages(request);
     imageCount++;
     // We do not use the first two images, which often has erroneous setup due to the latency of initialization of renderer.
-    if (imageCount >= 2) {
-      for (const ImageCaptureBase::ImageResponse &image_info : response) {
-        std::string path;
-        cv::Mat depthImage;
-        cv::Mat depthImage_uint8;
+    for (const ImageCaptureBase::ImageResponse &image_info : response) {
+      std::string path;
+      cv::Mat depthImage;
+      cv::Mat depthImage_uint8;
 
 //        {
 ////            This part of the code saves image to local. Uncomment for debug purpose.
@@ -93,33 +94,37 @@ class ImagePollAgent {
 //                      file.close();
 //        }
 
-        depthImage_uint8 = cv::imdecode(response.at(0).image_data_uint8,
-                                        cv::IMREAD_UNCHANGED);
+      depthImage_uint8 = cv::imdecode(response.at(0).image_data_uint8,
+                                      cv::IMREAD_UNCHANGED);
 
-        ros::Time timeStartEncode = ros::Time::now();
-        ros::Duration fetchImageTime = timeStartEncode - timeStartFetch;
-        std_msgs::Header header;  // empty header
-        header.seq = imageCount - 2;  // user defined counter
-        header.stamp = ros::Time::now();  // time
-        cv_bridge::CvImage img_bridge;
-        sensor_msgs::Image img_msg;  // >> message to be sent
+      ros::Time timeStartEncode = ros::Time::now();
+      ros::Duration fetchImageTime = timeStartEncode - timeStartFetch;
+      std_msgs::Header header;  // empty header
+      header.seq = imageCount - 2;  // user defined counter
+      header.stamp = ros::Time::now();  // time
+      cv_bridge::CvImage img_bridge;
+      sensor_msgs::Image img_msg;  // >> message to be sent
 
-        img_bridge = cv_bridge::CvImage(header,
-                                        sensor_msgs::image_encodings::RGB8,
-                                        depthImage_uint8);
+      img_bridge = cv_bridge::CvImage(header,
+                                      sensor_msgs::image_encodings::RGB8,
+                                      depthImage_uint8);
 
-        img_bridge.toImageMsg(img_msg);  // from cv_bridge to sensor_msgs::Image
-        pubDepthImage->publish(img_msg);  // ros::Publisher pub_img = node.advertise<sensor_msgs::Image>("topic", queuesize);
-        ros::Time timePublish = ros::Time::now();
-        ros::Duration convertImageTime = timePublish - timeStartEncode;
-        if (imageCount < 1000) {
-          imageFetchlog << imageCount - 2 << ",";
-          imageFetchlog << fetchImageTime.toSec() << ",";
-          imageFetchlog << convertImageTime.toSec() << ",";
-          imageFetchlog << "\n";
-        } else if (imageCount == 1000) {
-          imageFetchlog.close();
-        }
+      img_bridge.toImageMsg(img_msg);  // from cv_bridge to sensor_msgs::Image
+      pubDepthImage->publish(img_msg);  // ros::Publisher pub_img = node.advertise<sensor_msgs::Image>("topic", queuesize);
+      ros::Time timePublish = ros::Time::now();
+
+      std_msgs::Header imageReceived;  // empty header
+      imageReceived.seq = imageCount;  // user defined counter
+      imageReceived.stamp = ros::Time::now();  // time
+      pubImageReceivedFlag->publish(imageReceived);
+      ros::Duration convertImageTime = timePublish - timeStartEncode;
+      if (imageCount < 1000) {
+        imageFetchlog << imageCount - 2 << ",";
+        imageFetchlog << fetchImageTime.toSec() << ",";
+        imageFetchlog << convertImageTime.toSec() << ",";
+        imageFetchlog << "\n";
+      } else if (imageCount == 1000) {
+        imageFetchlog.close();
       }
     }
     return;
@@ -143,6 +148,11 @@ int main(int argc, char **argv) {
                       depthImageAgent.get())));
   depthImageAgent->pubDepthImage.reset(
       new image_transport::Publisher(it.advertise("depthImage", 1)));
+
+  depthImageAgent->pubImageReceivedFlag.reset(
+      new ros::Publisher(
+          n.advertise<std_msgs::Header>("imageReceivedFlag", 1)));
+
   cout << "Publisher setup.\n";
 ////////////////////////////////////////////////////////////////
 //Simulator setup
