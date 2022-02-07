@@ -73,7 +73,9 @@ By echo you have to see something like:
 
 * Start the AirSim Bridge node by running `rosrun hiperlab_rostools air_sim_bridge`. The AirSim Bridge receives synthesized camera images from Unity and convert it to ROS compatible messages.
 
-* Start the simulator node by running `rosrun hiperlab_rostools simulator 1` change `1` to other vehicle IDs if you are not running with the default vehicle. 
+* If your hardware is powerful enough/you experiment is not sensative to delay in synthesized graph generation, we suggest you use real-time ros simulator which is synced with a wall clock. Start the simulator node by running `rosrun hiperlab_rostools simulator 1` change `1` to other vehicle IDs if you are not running with the default vehicle.
+
+* If your hardware is limited/you sense significant delay in image generation, we suggest you use simulation-time ros simulator which is synced with a simulation clock. Start the sync-simulator node by running `rosrun hiperlab_rostools sync_simulator 1` change `1` to other vehicle IDs if you are not running with the default vehicle.
 
 * Start the RAPPIDS planner and controller node `rosrun hiperlab_rostools quad_rappids_planner_controller 1`. Again, change `1` to your vehicle IDs if you are running with a different vehicle.   
 
