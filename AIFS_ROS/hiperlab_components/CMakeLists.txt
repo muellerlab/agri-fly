@@ -10,7 +10,7 @@ add_definitions(-std=c++11)
 
 
 
-find_package( OpenCV 3.2.0 REQUIRED )
+find_package( OpenCV REQUIRED )
 include_directories(${OpenCV_INCLUDE_DIR})
 
 find_package(catkin REQUIRED COMPONENTS

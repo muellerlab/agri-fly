@@ -44,7 +44,7 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 #message(STATUS "Found OpenCV at ${OpenCV_INCLUDE_DIRS}")
 #target_link_libraries(my_awesome_library ${OpenCV_LIBRARIES})
 
-find_package(OpenCV 3 REQUIRED)
+find_package(OpenCV REQUIRED)
 message(STATUS "Found OpenCV at ${OpenCV_INCLUDE_DIRS}")
 include_directories(${OpenCV_INCLUDE_DIRS})
 
@@ -53,7 +53,7 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 
 
 ## Setup the AirSim Library
-set(AIRSIM_ROOT /home/clark/Documents/Repos/LabCode/agri-fly/AIFS_AirSim)  
+set(AIRSIM_ROOT /home/jbirtman/Documents/Repos/LabCode/agri-fly/AIFS_AirSim)  
 add_subdirectory("${AIRSIM_ROOT}/cmake/rpclib_wrapper" rpclib_wrapper)
 add_subdirectory("${AIRSIM_ROOT}/cmake/AirLib" AirLib)
 add_subdirectory("${AIRSIM_ROOT}/cmake/MavLinkCom" MavLinkCom)
