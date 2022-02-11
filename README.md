@@ -13,7 +13,7 @@ We created this project with Ubuntu environments. We recommend you to run it on 
 ## 1. Install Prerequisite Libraries
 The project is based on following common libraries. Make sure you have them installed on your computer. 
 1. [Boost Library](https://www.boost.org/)
-2. [Open CV 3.2](https://opencv.org/opencv-3-2/) 
+2. [Open CV](https://opencv.org/) (The oldest version we have tested is 3.2. We suggest using later version.) 
 3. [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page) 
 
 ## 2. Install Unity
@@ -50,9 +50,9 @@ We recommend using cmake with graphic interface if you are not familiar with com
 
 * then open the app:
 
-* where is the source code: ~/Documents/Repos/LabCode/GeneralCode
+* where is the source code: $PATH TO REPOSITORY$
 
-* where to build the binaries: ~/Documents/Repos/LabCode/GeneralCode/Build (this will ask to make new directory and say yes)
+* where to build the binaries: $PATH TO REPOSITORY$/Build (this will ask to make new directory and say yes)
 
 * Click Configure, then: 
 
@@ -65,6 +65,8 @@ We recommend using cmake with graphic interface if you are not familiar with com
 Now the code is ready to be compiled.
 
 # Quick Startup Guide For Single-thread Simulation
+
+Notice that the single-thread simulation is extremely slow and we recommend to use it only as a tool to check if code installation is successful. We recommend to use ROS Simulator as basis for developement. 
 
 * Start Unity Hub, import the argricultral world via selecting the folder 'AIFS_AirSim\Unity\UnityDemo', and then hit the OK button.
 
@@ -81,10 +83,6 @@ Now the code is ready to be compiled.
 See readme.md inside the AIFS_ROS folder.
 
 
-<!-- # Upcoming Updates
-Current version is a basic demonstration showing the pipeline connecting the physics & controller code with the AirSim.
-We are expecting to release a newer version that enables different parts of the simulation to communicate via ROS shortly.  -->
-
 # Structure Overview
 ![image](https://user-images.githubusercontent.com/39609430/147999038-ac5ea2ee-9f68-4a50-ad56-389cf1e7840f.png)
 
@@ -99,6 +97,10 @@ We are expecting to release a newer version that enables different parts of the 
 
 
 # Acknowledgement
-The project is supported by USDA-NIFA/NSF AI Institute for Next Generation Food Systems (AIFS)(https://aifs.ucdavis.edu/)
+The project is supported by USDA-NIFA/NSF AI Institute for Next Generation Food Systems [AIFS](https://aifs.ucdavis.edu/)
 ![image](https://user-images.githubusercontent.com/39609430/147998908-35fdf682-6ddc-4d3a-9b42-f0877b539d82.png)
+
+The high fidelity tree models in the simulator is generated with the [Helios](https://baileylab.ucdavis.edu/software/helios/) developed by Bailey lab of UC Davis.
+![Helios_logo_small](https://user-images.githubusercontent.com/39609430/153678415-4192ebe7-d9f6-4d66-9a28-ed2dbb2a6443.png)
+
 
