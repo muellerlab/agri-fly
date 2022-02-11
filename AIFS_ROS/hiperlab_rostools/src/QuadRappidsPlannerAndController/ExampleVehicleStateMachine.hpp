@@ -34,9 +34,6 @@
 #include <random>
 #include <string>
 
-// OpenCV includes
-#include <opencv/cv.hpp>
-
 // Code for image publisher
 #include <image_transport/image_transport.h>
 #include <opencv2/highgui/highgui.hpp>

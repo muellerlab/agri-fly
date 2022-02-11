@@ -34,9 +34,6 @@
 #include "common/common_utils/FileSystem.hpp"
 #include <iostream> // for image saving
 
-// OpenCV includes
-#include <opencv/cv.hpp>
-
 // Code for image publisher
 #include "std_msgs/Bool.h"
 
