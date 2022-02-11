@@ -53,7 +53,7 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 
 
 ## Setup the AirSim Library
-set(AIRSIM_ROOT /home/clark/Documents/Repos/LabCode/agri-fly/AIFS_AirSim)  
+set(AIRSIM_ROOT /home/jbirtman/Documents/Repos/LabCode/agri-fly/AIFS_AirSim)  
 add_subdirectory("${AIRSIM_ROOT}/cmake/rpclib_wrapper" rpclib_wrapper)
 add_subdirectory("${AIRSIM_ROOT}/cmake/AirLib" AirLib)
 add_subdirectory("${AIRSIM_ROOT}/cmake/MavLinkCom" MavLinkCom)
