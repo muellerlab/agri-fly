@@ -39,8 +39,6 @@
 #include "common/common_utils/FileSystem.hpp"
 #include <iostream> // for image saving
 
-// OpenCV includes
-#include <opencv/cv.hpp>
 #include "Components/DepthImagePlanner/DepthImagePlanner.hpp"
 
 using namespace std;
