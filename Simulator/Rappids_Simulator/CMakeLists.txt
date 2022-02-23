@@ -28,7 +28,7 @@ set(RPC_LIB_INCLUDES " ${AIRSIM_ROOT}/external/rpclib/rpclib-2.2.1/include")
 set(RPC_LIB rpc)
 message(STATUS "found RPC_LIB_INCLUDES=${RPC_LIB_INCLUDES}")
 
-find_package( OpenCV 3.2.0 REQUIRED )
+find_package( OpenCV REQUIRED )
 message(STATUS "Found OpenCV at ${OpenCV_INCLUDE_DIRS}")
 include_directories(${AIRSIM_ROOT}/AirLib/deps/eigen3)
 

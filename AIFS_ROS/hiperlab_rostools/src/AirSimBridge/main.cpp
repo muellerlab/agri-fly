@@ -79,11 +79,13 @@ class ImagePollAgent {
 
 //        {
 ////            This part of the code saves image to local. Uncomment for debug purpose.
-//                      path = "/home/clark/Documents/AirSim";
+//                      char *homdir = getenv("HOME");
+//                      string homdirstr = homdir;
+//                      path = homdirstr + "/Documents/AirSim";
 //                      char buffer[256];
 //                      sprintf(buffer, "%04d", imageCount - 3);
 //                      std::string str(buffer);
-//                      std::string file_path = FileSystem::combine(path, "img" + str);
+//                      std::string file_path = common_utils::FileSystem::combine(path, "img" + str);
 //                      std::ofstream file(file_path + ".png", std::ios::binary);
 //                      file.write(
 //                          reinterpret_cast<const char*>(image_info.image_data_uint8.data()),
@@ -148,7 +150,7 @@ int main(int argc, char **argv) {
 
   depthImageAgent->pubImageReceivedFlag.reset(
       new ros::Publisher(
-          n.advertise<std_msgs::Header>("imageReceivedFlag", 1)));
+          n.advertise < std_msgs::Header > ("imageReceivedFlag", 1)));
 
   cout << "Publisher setup.\n";
 ////////////////////////////////////////////////////////////////
