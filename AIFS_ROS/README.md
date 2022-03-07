@@ -71,7 +71,7 @@ By echo you have to see something like:
 # 2- Run the ROS simulator
 * Start ROS by running `roscore`
 
-* Start the AirSim Bridge node by running `rosrun hiperlab_rostools air_sim_bridge`. The AirSim Bridge receives synthesized camera images from Unity and convert it to ROS compatible messages.
+* Start the AirSim Bridge node by running `rosrun hiperlab_rostools air_sim_bridge`. The AirSim Bridge receives synthesized camera images from Unity and convert it to ROS compatible messages. Use 1 or 2 arguments of integer 0-10 to specify which camera type(s) to be returned from Unity. 
 
 * If your hardware is powerful enough/you experiment is not sensative to delay in synthesized graph generation, we suggest you use real-time ros simulator which is synced with a wall clock. Start the simulator node by running `rosrun hiperlab_rostools simulator 1` change `1` to other vehicle IDs if you are not running with the default vehicle.
 
