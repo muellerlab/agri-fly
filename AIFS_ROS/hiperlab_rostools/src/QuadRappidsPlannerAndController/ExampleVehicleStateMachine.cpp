@@ -45,7 +45,7 @@ ExampleVehicleStateMachine::ExampleVehicleStateMachine() {
   _lookAheadTime = 0.02;
   _goalWorld = Vec3d(100.0, 0.0, 2.5);
   _depthImageCount = 0;
-  _otherImageCount = 0;
+  _rgbImageCount = 0;
   _firstTrajReady = false;
 }
 
@@ -304,7 +304,7 @@ void ExampleVehicleStateMachine::CallbackDepthImages(
   _depthImageCount++;
 }
 
-void ExampleVehicleStateMachine::CallbackOtherImages(
+void ExampleVehicleStateMachine::CallbackRGBImages(
     const sensor_msgs::ImageConstPtr &msg) {
 
   std_msgs::Header h = msg->header;
@@ -324,7 +324,7 @@ void ExampleVehicleStateMachine::CallbackOtherImages(
    + ".bmp";
    cv::imwrite(file_path, depthImage); */
 
-  _otherImageCount++;
+  _rgbImageCount++;
 
 }
 
@@ -360,10 +360,10 @@ void ExampleVehicleStateMachine::Initialize(int id, std::string name,
   _subDepthImages = _it.subscribe(
       "depthImage", 1, &ExampleVehicleStateMachine::CallbackDepthImages, this);  // Follow Nathan's example in generating the image subscriber
 
-  image_transport::ImageTransport _otherIt(n);
+  image_transport::ImageTransport _rgbIt(n);
 
-  _subOtherImages = _otherIt.subscribe(
-      "otherImage", 1, &ExampleVehicleStateMachine::CallbackOtherImages, this);
+  _subRGBImages = _rgbIt.subscribe(
+      "rgbImage", 1, &ExampleVehicleStateMachine::CallbackRGBImages, this);
 
   _pubEstimate.reset(
       new ros::Publisher(
