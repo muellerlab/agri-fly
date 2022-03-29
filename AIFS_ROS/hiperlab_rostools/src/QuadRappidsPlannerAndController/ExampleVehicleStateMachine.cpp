@@ -311,18 +311,18 @@ void ExampleVehicleStateMachine::CallbackRGBImages(
   //ros::Time publishTime = h.stamp;
   //ros::Time receiveImageTime = ros::Time::now();
   //ros::Duration transMissionTime = receiveImageTime - publishTime;
-  cv::Mat depthImage;
-  cv::Mat depthImage_uint8 = cv_bridge::toCvShare(
+  cv::Mat otherImage;
+  cv::Mat otherImage_uint8 = cv_bridge::toCvShare(
       msg, sensor_msgs::image_encodings::RGB8)->image;
 
-  depthImage_uint8.convertTo(depthImage, CV_16U);
+  otherImage_uint8.convertTo(otherImage, CV_16U);
 
   /*char buffer[256];
-   sprintf(buffer, "%04d", _otherImageCount);
+   sprintf(buffer, "%04d", _rgbImageCount);
    std::string str(buffer);
    std::string file_path = "/home/jbirtman/Documents/AirSim/imgOther" + str
    + ".bmp";
-   cv::imwrite(file_path, depthImage); */
+   cv::imwrite(file_path, otherImage); */
 
   _rgbImageCount++;
 

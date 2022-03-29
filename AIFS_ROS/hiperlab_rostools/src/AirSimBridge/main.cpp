@@ -83,8 +83,10 @@ class ImagePollAgent {
       request = { ImageCaptureBase::ImageRequest("0", camera1, false, true) };
     } else {
       camera2 = static_cast<ImageCaptureBase::ImageType>(imageType2);
-      request = { ImageCaptureBase::ImageRequest("0", camera1, false, true),
-          ImageCaptureBase::ImageRequest("0", camera2, false, true) };
+      //request = { ImageCaptureBase::ImageRequest("0", camera1, false, true),
+      //    ImageCaptureBase::ImageRequest("0", camera2, false, true) };
+      request = { ImageCaptureBase::ImageRequest("0", camera2, false, true),
+          ImageCaptureBase::ImageRequest("0", camera1, false, true) };
     }
 
     const msr::airlib::vector<ImageCaptureBase::ImageResponse> &response =
@@ -96,7 +98,7 @@ class ImagePollAgent {
       cv::Mat depthImage;
       cv::Mat depthImage_uint8;
       cv::Mat rgbImage_uint8;
-      /*      {
+      /*{
        //            This part of the code saves image to local. Uncomment for debug purpose.
        char *homdir = getenv("HOME");
        string homdirstr = homdir;
