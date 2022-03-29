@@ -108,6 +108,8 @@ class ExampleVehicleStateMachine {
   void CallbackDepthImages(const sensor_msgs::ImageConstPtr &msg);
   void CallbackOdometry(const nav_msgs::Odometry &msg);
 
+  void CallbackRGBImages(const sensor_msgs::ImageConstPtr &msg);
+
   void Run(bool shouldStart, bool shouldStop);
 
   void PublishEstimate(MocapStateEstimator::MocapEstimatedState estState);
@@ -170,6 +172,7 @@ class ExampleVehicleStateMachine {
       _pubControllerDiagnotics;
 
   image_transport::Subscriber _subDepthImages;
+  image_transport::Subscriber _subRGBImages;
 
 //state info:
   FlightStage _flightStage, _lastFlightStage;
@@ -199,6 +202,16 @@ class ExampleVehicleStateMachine {
   Rotationd _trajAtt;
 
   unsigned _depthImageCount;
+
+  // Variables for RGB image planner
+  double _rgbScale;
+  Rotationd _rgbCamAtt;
+  double _rgbFocalLength;
+  unsigned _rgbImageHeight;
+  unsigned _rgbImageWidth;
+  Rotationd _rgbTrajAtt;
+
+  unsigned _rgbImageCount;
 
   //This estimation global variables will be used for planning
   Rotationd _estAtt;

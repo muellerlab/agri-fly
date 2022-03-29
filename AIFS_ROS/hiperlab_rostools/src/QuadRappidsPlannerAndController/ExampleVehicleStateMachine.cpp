@@ -45,6 +45,7 @@ ExampleVehicleStateMachine::ExampleVehicleStateMachine() {
   _lookAheadTime = 0.02;
   _goalWorld = Vec3d(100.0, 0.0, 2.5);
   _depthImageCount = 0;
+  _rgbImageCount = 0;
   _firstTrajReady = false;
 }
 
@@ -107,12 +108,11 @@ void ExampleVehicleStateMachine::CallbackDepthImages(
       msg, sensor_msgs::image_encodings::RGB8)->image;
 
   depthImage_uint8.convertTo(depthImage, CV_16U);
-
-  char buffer[256];
-  sprintf(buffer, "%04d", _depthImageCount);
-  std::string str(buffer);
-  std::string file_path = "/home/clark/Documents/AirSim/img" + str + ".bmp";
-  cv::imwrite(file_path, depthImage);
+  /*char buffer[256];
+   sprintf(buffer, "%04d", _depthImageCount);
+   std::string str(buffer);
+   std::string file_path = "/home/jbirtman/Documents/AirSim/img" + str + ".bmp";
+   cv::imwrite(file_path, depthImage); */
 
 //  {
 //    // This block prints the value of the largest and smallest depth in the image, and save the depth image to local. Uncomment for debug purpose
@@ -144,7 +144,6 @@ void ExampleVehicleStateMachine::CallbackDepthImages(
 //    std::string file_path = "/home/clark/Documents/AirSim/img" + str + ".bmp";
 //    cv::imwrite(file_path, depthImage);
 //  }
-
   _depthImageWidth = depthImage.cols;
   _depthImageHeight = depthImage.rows;
   _focalLength = _depthImageWidth / 2.0;
@@ -210,22 +209,22 @@ void ExampleVehicleStateMachine::CallbackDepthImages(
         // Record the trajectory
         _plannedTrajLog << _plannedTrajCount << ",";
         _plannedTrajLog << trajCoeffs[0].x << "," << trajCoeffs[0].y << ","
-                        << trajCoeffs[0].z << ",";
+            << trajCoeffs[0].z << ",";
         _plannedTrajLog << trajCoeffs[1].x << "," << trajCoeffs[1].y << ","
-                        << trajCoeffs[1].z << ",";
+            << trajCoeffs[1].z << ",";
         _plannedTrajLog << trajCoeffs[2].x << "," << trajCoeffs[2].y << ","
-                        << trajCoeffs[2].z << ",";
+            << trajCoeffs[2].z << ",";
         _plannedTrajLog << trajCoeffs[3].x << "," << trajCoeffs[3].y << ","
-                        << trajCoeffs[3].z << ",";
+            << trajCoeffs[3].z << ",";
         _plannedTrajLog << trajCoeffs[4].x << "," << trajCoeffs[4].y << ","
-                        << trajCoeffs[4].z << ",";
+            << trajCoeffs[4].z << ",";
         _plannedTrajLog << trajCoeffs[5].x << "," << trajCoeffs[5].y << ","
-                        << trajCoeffs[5].z << ",";
+            << trajCoeffs[5].z << ",";
         _plannedTrajLog << traj_y << "," << traj_p << "," << traj_r << ",";
         _plannedTrajLog << _trajOffset.x << "," << _trajOffset.y << ","
-                        << _trajOffset.z << ",";
+            << _trajOffset.z << ",";
         _plannedTrajLog << trajToRecord.GetStartTime() << ","
-                        << trajToRecord.GetEndTime() << "\n";
+            << trajToRecord.GetEndTime() << "\n";
       }
 
       if (not _firstTrajReady) {
@@ -305,6 +304,30 @@ void ExampleVehicleStateMachine::CallbackDepthImages(
   _depthImageCount++;
 }
 
+void ExampleVehicleStateMachine::CallbackRGBImages(
+    const sensor_msgs::ImageConstPtr &msg) {
+
+  std_msgs::Header h = msg->header;
+  //ros::Time publishTime = h.stamp;
+  //ros::Time receiveImageTime = ros::Time::now();
+  //ros::Duration transMissionTime = receiveImageTime - publishTime;
+  cv::Mat otherImage;
+  cv::Mat otherImage_uint8 = cv_bridge::toCvShare(
+      msg, sensor_msgs::image_encodings::RGB8)->image;
+
+  otherImage_uint8.convertTo(otherImage, CV_16U);
+
+  /*char buffer[256];
+   sprintf(buffer, "%04d", _rgbImageCount);
+   std::string str(buffer);
+   std::string file_path = "/home/jbirtman/Documents/AirSim/imgOther" + str
+   + ".bmp";
+   cv::imwrite(file_path, otherImage); */
+
+  _rgbImageCount++;
+
+}
+
 void ExampleVehicleStateMachine::Initialize(int id, std::string name,
                                             ros::NodeHandle &n,
                                             BaseTimer *timer,
@@ -337,24 +360,29 @@ void ExampleVehicleStateMachine::Initialize(int id, std::string name,
   _subDepthImages = _it.subscribe(
       "depthImage", 1, &ExampleVehicleStateMachine::CallbackDepthImages, this);  // Follow Nathan's example in generating the image subscriber
 
+  image_transport::ImageTransport _rgbIt(n);
+
+  _subRGBImages = _rgbIt.subscribe(
+      "rgbImage", 1, &ExampleVehicleStateMachine::CallbackRGBImages, this);
+
   _pubEstimate.reset(
       new ros::Publisher(
-          n.advertise<hiperlab_rostools::estimator_output>(
-              "estimator" + std::to_string(_id), 1)));
+          n.advertise < hiperlab_rostools::estimator_output
+              > ("estimator" + std::to_string(_id), 1)));
   _pubCmd.reset(
       new ros::Publisher(
-          n.advertise<hiperlab_rostools::radio_command>(
-              "radio_command" + std::to_string(_id), 1)));
+          n.advertise < hiperlab_rostools::radio_command
+              > ("radio_command" + std::to_string(_id), 1)));
 
   _pubPlannerDiagnotics.reset(
       new ros::Publisher(
-          n.advertise<hiperlab_rostools::planner_diagnostics>(
-              "planner_diagnostics", 10)));
+          n.advertise < hiperlab_rostools::planner_diagnostics
+              > ("planner_diagnostics", 10)));
 
   _pubControllerDiagnotics.reset(
       new ros::Publisher(
-          n.advertise<hiperlab_rostools::controller_diagnostics>(
-              "controller_diagnostics", 10)));
+          n.advertise < hiperlab_rostools::controller_diagnostics
+              > ("controller_diagnostics", 10)));
 
 //set up components:
   _est.reset(new MocapStateEstimator(timer, _id, systemLatencyTime));
@@ -676,7 +704,7 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
     case StageEmergency: {
       if (stageChange) {
         cout << _name << "Emergency stage! Safety net = <"
-             << _safetyNet->GetStatusString() << ">.\n";
+            << _safetyNet->GetStatusString() << ">.\n";
       }
 
       RadioTypes::RadioMessageDecoded::CreateKillCommand(0, rawMsg);
