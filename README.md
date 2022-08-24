@@ -18,7 +18,7 @@ The project is based on following common libraries. Make sure you have them inst
 
 ## 2. Install Unity
 Unity editor is needed to run the simulated environment. 
-An installation guide for Unity on Linux environment can be found [here](https://docs.unity3d.com/Manual/GettingStartedInstallingHub.html).
+An installation guide for Unity on Linux environment can be found [here](https://docs.unity3d.com/2020.1/Documentation/Manual/GettingStartedInstallingHub.html).
 
 ## 3. Clone Repository and Setup AirSim
 Go to the directory where you want to install the code.
