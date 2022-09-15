@@ -22,7 +22,7 @@ An installation guide for Unity on Linux environment can be found [here](https:/
 
 ## 3. Clone Repository and Setup AirSim
 Go to the directory where you want to install the code.
-`git clone https://github.com/muellerlab/agri-fly` 
+`git clone --recurse-submodules https://github.com/muellerlab/agri-fly` 
 
 `cd AIFS_AirSim`
 
