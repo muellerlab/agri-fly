@@ -43,7 +43,7 @@ ExampleVehicleStateMachine::ExampleVehicleStateMachine() {
   _minCollisionDist = 0.5;
   _plannedTrajDuration = 0;
   _lookAheadTime = 0.02;
-  _goalWorld = Vec3d(100.0, 0.0, 2.5);
+  _goalWorld = Vec3d(20.0, 0.0, 2.5);
   _depthImageCount = 0;
   _rgbImageCount = 0;
   _firstTrajReady = false;
@@ -389,6 +389,7 @@ void ExampleVehicleStateMachine::Initialize(int id, std::string name,
   _systemLatencyTime = systemLatencyTime;
   _ctrl.reset(new QuadcopterController());
   _safetyNet.reset(new SafetyNet());
+  _safetyNet->SetSafeCorners(Vec3d(-100,-100,-0.5), Vec3d(100,100,20), 5.0);
 
   _flightStage = StageWaitForStart;
   _lastFlightStage = StageComplete;
@@ -406,7 +407,7 @@ void ExampleVehicleStateMachine::Initialize(int id, std::string name,
   double armLength = vehConsts.armLength;
   _physicalVehicleRadius = armLength * 2.0;
   _vehicleRadiusPlanning = armLength * 2.0 * 1.5;
-  _goalWorld = Vec3d(100.0, 0.0, 5.0);
+  _goalWorld = Vec3d(20.0, 0.0, 2.5);
   _depthCamAtt = Rotationd::FromEulerYPR(-90.0 * M_PI / 180.0, 0 * M_PI / 180.0,
                                          -90 * M_PI / 180.0);
 
@@ -598,10 +599,11 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
           refAngVel = _estAtt.Inverse() * _trajAtt
               * _plannedTraj->GetOmega(t, 1.0 / loopRate);  // in Body Frame
           refThrust = _plannedTraj->GetThrust(t);
-
-//          Vec3d desired_direction_w = _goalWorld - _estPos;    // in World Frame
-//          _desiredYawAngle = atan2(desired_direction_w.y,
-//                                   desired_direction_w.x);  // atan2 to return -pi to pi
+        
+        // This block changes the desired yaw to towards the goal point
+        //  Vec3d desired_direction_w = _goalWorld - _estPos;    // in World Frame
+        //  _desiredYawAngle = atan2(desired_direction_w.y,
+        //                           desired_direction_w.x);  // atan2 to return -pi to pi
         }
 
         cmdMsg = RunTrackingControllerAndUpdateEstimator(estState, refPos,
@@ -647,12 +649,23 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
       if (shouldStop) {
         _flightStage = StageLanding;
       }
+
+      // What to do if goal point is reached
+      Vec3d desired_direction_w = _goalWorld - _estPos;
+      float dist_to_goal = desired_direction_w.GetNorm2();
+      if (dist_to_goal < 1.0) {
+        cout << _name << "Close to goal.\n";
+        _flightStage = StageLanding;
+      }
       break;
     }
 
     case StageLanding: {
       if (stageChange) {
         cout << _name << "Starting landing.\n";
+        _lastPos = _estPos;
+        _lastVel = _estVel;
+        // cout << "lastPos = <" << _lastPos.x << "," << _lastPos.y << "," << _lastPos.z << ">\n";
       }
 
       if (!_safetyNet->GetIsSafe()) {
@@ -664,8 +677,10 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
         double const getIntoActionTime = 2.0;  //[s]
         double frac = min(_stageTimer->GetSeconds<double>() / getIntoActionTime,
                           1.0);
+        
         Vec3d cmdPos = _lastPos
             + _stageTimer->GetSeconds<double>() * Vec3d(0, 0, -LANDING_SPEED);
+
         if (cmdPos.z < 0) {
           _flightStage = StageComplete;
         }
