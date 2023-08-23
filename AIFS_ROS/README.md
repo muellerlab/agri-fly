@@ -81,7 +81,7 @@ By echo you have to see something like:
 
 * Start the keyboard node by running `rosrun hiperlab_hardware keyboard_control`. Then follow the instruction given by the RAPPIDS node and hit the ‘s’ button on the keyboard multiple times to start the flight controller.
 
-* To end the simulation, kill the ROS nodes first before you stop the Unity simulated world.
+* To end the simulation, kill the ROS nodes (in the same order you ran them) first before you stop the Unity simulated world.
 
 # 3- Record bag files
 * Copy and paste `rosbag_record_airsim.sh` to places you want to record data at.
