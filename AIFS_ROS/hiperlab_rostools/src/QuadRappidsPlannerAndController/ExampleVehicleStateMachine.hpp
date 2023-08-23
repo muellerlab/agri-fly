@@ -33,6 +33,9 @@
 #include <opencv2/opencv.hpp>
 #include <random>
 #include <string>
+#include <iostream>
+#include <fstream>
+#include <sstream>
 
 // Code for image publisher
 #include <image_transport/image_transport.h>
@@ -229,6 +232,8 @@ class ExampleVehicleStateMachine {
   double _previousThrust;
   Vec3d _trajOffset;  //Offset position of the the traj from camera frame to world frame
   Vec3d _goalWorld;
+  Vec3d _lastGoal;
+  std::fstream _trajFile;
   std::vector<RectangularPyramidPlanner::TrajectoryTest> _depthPlannedTraj;
   std::shared_ptr<RapidQuadrocopterTrajectoryGenerator::RapidTrajectoryGenerator> _plannedTraj;
   std::shared_ptr<Timer> _timeOnPlannedTraj;  //keep track of time we've been on the current trajectory.
