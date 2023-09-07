@@ -14,7 +14,7 @@
 #include "Common/Time/Timer.hpp"
 #include "Common/Time/ManualTimer.hpp"
 #include "PredictionPipe.hpp"
-
+#include "EstimatedState.hpp"
 
 //TODO FIXME: this needs to be thread-safe, mutex
 
@@ -34,10 +34,6 @@ class GPSStateEstimator {
   };
 
  public:
-  struct GPSEstimatedState {
-    Vec3d pos, vel, angVel;
-    Rotationd att;
-  };
 
   GPSStateEstimator(BaseTimer* const masterTimer, unsigned const id,
                       double standardCommunicationsDelay);
@@ -52,7 +48,7 @@ class GPSStateEstimator {
     return _id;
   }
   // This just predicts the states by running the dynamic for the dt second latency between estimator & controller.
-  GPSEstimatedState GetPrediction(double const dt) const;
+  EstimatedState GetPrediction(double const dt) const;
 
   unsigned GetPredictedMeasurementRejectionCount() const {
     std::lock_guard<std::mutex> guard(_mutexEstimate);

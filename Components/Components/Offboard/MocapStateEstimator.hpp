@@ -14,6 +14,7 @@
 #include "Common/Time/Timer.hpp"
 #include "Common/Time/ManualTimer.hpp"
 #include "PredictionPipe.hpp"
+#include "EstimatedState.hpp"
 
 //TODO FIXME: this needs to be thread-safe, mutex
 
@@ -28,10 +29,6 @@ namespace Offboard {
  */
 class MocapStateEstimator {
   public:
-    struct MocapEstimatedState {
-      Vec3d pos, vel, angVel;
-      Rotationd att;
-    };
 
     MocapStateEstimator(BaseTimer* const masterTimer, unsigned const id,
                         double standardCommunicationsDelay);
@@ -48,7 +45,7 @@ class MocapStateEstimator {
       return _id;
     }
     // This just predicts the states by running the dynamic for the dt second latency between estimator & controller.
-    MocapEstimatedState GetPrediction(double const dt) const;
+    EstimatedState GetPrediction(double const dt) const;
 
     unsigned GetPredictedMeasurementRejectionCount() const {
       std::lock_guard<std::mutex> guard(_mutexEstimate);

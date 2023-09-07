@@ -60,12 +60,12 @@ void GPSStateEstimator::ResetVariance() {
   }
 }
 
-GPSStateEstimator::GPSEstimatedState GPSStateEstimator::GetPrediction(
+EstimatedState GPSStateEstimator::GetPrediction(
     double const dt) const {
   //tools for feedforward estimate state prediction
   double tStart;
   double tEnd = dt + _timer.GetSeconds<double>();
-  GPSEstimatedState est;
+  EstimatedState est;
   {
     std::lock_guard<std::mutex> guard(_mutexEstimate);
     tStart = _estimateTimer.GetSeconds<double>();
@@ -109,7 +109,6 @@ GPSStateEstimator::GPSEstimatedState GPSStateEstimator::GetPrediction(
     est.vel = newVel;
     est.att = newAtt;
     est.angVel = newAngVel;
-
     t += dtInt;
   }
   return est;
@@ -285,5 +284,4 @@ void GPSStateEstimator::UpdateWithMeasurement(Vec3d const measPos) {
 
   //clear expired messages
   _predictionPipe.ClearExpiredMessages(_estimateTimer.GetSeconds<double>());
-
 }
