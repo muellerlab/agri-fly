@@ -859,7 +859,7 @@ hiperlab_rostools::radio_command ExampleVehicleStateMachine::RunTrackingControll
   cmdThrustOutput = cmdThrust;
   cmdAttOutput = cmdAtt;
   cmdAngVelOutput = cmdAngVel;
-//Tell the estimator:
+  //Tell the estimator:
   _est->SetPredictedValues(
       cmdAngVel,
       (estState.att * Vec3d(0, 0, 1) * cmdThrust - Vec3d(0, 0, 9.81)));

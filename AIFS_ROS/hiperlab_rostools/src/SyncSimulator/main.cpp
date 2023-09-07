@@ -20,12 +20,12 @@
 #include "Common/Time/ManualTimer.hpp"
 #include "Common/Time/HardwareTimer.hpp"
 #include "Components/Simulation/Quadcopter_T.hpp"
-#include "Components/Simulation/UWBNetwork.hpp"
 #include "Components/Simulation/CommunicationsDelay.hpp"
 
 #include <fstream>
 
 #include "hiperlab_rostools/mocap_output.h"
+#include "hiperlab_rostools/gps_output.h"
 #include "hiperlab_rostools/simulator_truth.h"
 #include "hiperlab_rostools/radio_command.h"
 #include "hiperlab_rostools/telemetry.h"
@@ -76,6 +76,7 @@ class SimVehicle {
   std::shared_ptr<ros::Publisher> pubImagePoll;
   std::shared_ptr<ros::Publisher> pubOdometry;
   std::shared_ptr<ros::Publisher> pubSimTime;
+  std::shared_ptr<ros::Publisher> pubGPS;
   rosgraph_msgs::Clock simTimeMsg;
 
   bool imageStarted;
@@ -207,6 +208,11 @@ int main(int argc, char **argv) {
           n.advertise<hiperlab_rostools::mocap_output>(
               "mocap_output" + std::to_string(vehicleId), 1)));
 
+  v->pubGPS.reset(
+      new ros::Publisher(
+          n.advertise<hiperlab_rostools::gps_output>(
+              "gps_output" + std::to_string(vehicleId), 1)));
+
   v->pubTelemetry.reset(
       new ros::Publisher(
           n.advertise<hiperlab_rostools::telemetry>(
@@ -241,17 +247,14 @@ int main(int argc, char **argv) {
   const double frequencyTelemetry = 100;  //[Hz] Ideally, 1/mocapOuptputFreq is a constant multiple of 1/frequencySimulation.
   const double frequencyDepthImage = 30;  //[Hz]
   const double frequencyOdometry = 250;  //[Hz] Update rate at 250Hz. Value based on Xiangyu's bag including Real Sense T265 message
+  const double frequencyGPSOutput = 100.0; //[Hz] Update rate at 100Hz
+  
   const double stepTime = 1.0 / frequencySimulation;  //[s] Time advance 0.002s between two steps
   // We use manual timer to sync
   ManualTimer simTimer;
 
   //The communication transport delay:
   double const timeDelayOffboardControlLoop = 20e-3;  //[s] TODO: we should measure this!
-
-  //noise in the UWB system:
-  double uwbNoiseStdDev = 50e-3;  //[m]
-  double uwbOutlierProb = 0.01;
-  double uwbOutlierStdDev = 10;  //[m]
 
   //create the vehicles
   Onboard::QuadcopterConstants::QuadcopterType quadcopterType =
@@ -291,15 +294,8 @@ int main(int argc, char **argv) {
                                  motorInertia, linDragCoeffB, v->id,
                                  quadcopterType, 1.0 / frequencySimulation));
 
-//  double maxDistAlongAxis = 1.5;
-//  double minSpacing = 0.5;
-//  int NN = int(maxDistAlongAxis / minSpacing + 0.5);
-//  int ix = v->id % (2 * NN) - NN;
-//  int iy = v->id / (2 * NN) - NN;
-//  double initPosx = ix * minSpacing;
-//  double initPosy = iy * minSpacing;
 
-  // redefine for AirSim testing
+  // set initial positon and attitude
   double initPosx = 0;
   double initPosy = 0;
 
@@ -323,45 +319,13 @@ int main(int argc, char **argv) {
           RadioTypes::RadioMessageDecoded::RawMessage>(
           &simTimer, timeDelayOffboardControlLoop));
 
-  //Create other UWB objects:      for (auto v : vehicles) {
-
-  double const uwbNetworkRangingPeriod = 1.0 / 100;  //[s], runs at approx. 100Hz.
-
-  //Create some static UWB radios (Ids = 2,3,4)
-  std::vector<std::shared_ptr<Simulation::UWBRadio>> staticRadios;
-
-  std::shared_ptr<Simulation::UWBRadio> r2, r3, r4;
-  r2.reset(new Simulation::UWBRadio(&simTimer, 2));
-  r2->SetPosition(Vec3d(10, 0, 0));
-  r3.reset(new Simulation::UWBRadio(&simTimer, 3));
-  r3->SetPosition(Vec3d(0, 10, 0));
-  r4.reset(new Simulation::UWBRadio(&simTimer, 4));
-  r4->SetPosition(Vec3d(0, 0, 10));
-
-  //add all radios to the network
-  std::shared_ptr<Simulation::UWBNetwork> uwbNetwork;
-  uwbNetwork.reset(
-      new Simulation::UWBNetwork(&simTimer, uwbNetworkRangingPeriod));
-  uwbNetwork->SetNoiseProperties(uwbNoiseStdDev, uwbOutlierProb,
-                                 uwbOutlierStdDev);
-  uwbNetwork->AddRadio(r2);
-  uwbNetwork->AddRadio(r3);
-  uwbNetwork->AddRadio(r4);
-
-  if (v->vehicle->GetRadio()) {
-    uwbNetwork->AddRadio(v->vehicle->GetRadio());
-  }
-  //Tell the vehicle firmware about the radios:
-  v->vehicle->AddUWBRadioTarget(r2->GetId(), r2->GetPosition());
-  v->vehicle->AddUWBRadioTarget(r3->GetId(), r3->GetPosition());
-  v->vehicle->AddUWBRadioTarget(r4->GetId(), r4->GetPosition());
-
   cout << "Starting simulation\n";
   Timer t(&simTimer);  //Timer keeps tracking of simulation time
   double timePrintNextInfo = 0;
   double timePublishNextMocap = 0;
   double timePublishNextTelemetry = 0;
   double timePublishNextOdometry = 0;
+  double timePublishNextGPS = 0;
   double timeGetNextDepthImage = 0;
   unsigned imageCount = 0;
 
@@ -381,7 +345,6 @@ int main(int argc, char **argv) {
       for (auto v : vehicles) {
         v->vehicle->Run();
       }
-      uwbNetwork->Run();
 
       if (t.GetSeconds<double>() > timePrintNextInfo) {
         timePrintNextInfo += 1;
@@ -490,6 +453,20 @@ int main(int argc, char **argv) {
 
         v->pubMoCap->publish(mocapOutMsg);
       }
+
+    if (t.GetSeconds<double>() > timePublishNextGPS) {
+      timePublishNextGPS += 1 / frequencyGPSOutput;
+      hiperlab_rostools::gps_output gpsOutMsg;
+      gpsOutMsg.header.stamp = ros::Time::now();
+      gpsOutMsg.vehicleID = v->id;
+
+      //TODO: add noise!
+      Vec3d measPos = v->vehicle->GetPosition();
+      gpsOutMsg.posx = measPos.x;
+      gpsOutMsg.posy = measPos.y;
+      gpsOutMsg.posz = measPos.z;
+      v->pubGPS->publish(gpsOutMsg);
+    }
 
       //Publish also the simulation truth:
       hiperlab_rostools::simulator_truth simTruthMsg;

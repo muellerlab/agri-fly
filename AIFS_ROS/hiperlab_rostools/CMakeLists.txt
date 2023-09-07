@@ -115,7 +115,8 @@ include_directories(
 add_message_files(
   FILES
 	estimator_output.msg
-	mocap_output.msg  
+  gps_output.msg
+	mocap_output.msg
 	simulator_truth.msg
 	radio_command.msg
 	telemetry.msg

@@ -48,4 +48,10 @@ SquareMatrix<Real, M> IdentityMatrix() {
   return SquareMatrix<Real, M>::Identity();
 
 }
+
+template<typename Real, int M>
+SquareMatrix<Real, M> MatrixInverse(SquareMatrix<Real, M> inputMatrix) {
+	return inputMatrix.inverse();
+}
+
 #endif
