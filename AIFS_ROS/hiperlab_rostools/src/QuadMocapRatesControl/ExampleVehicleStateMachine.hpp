@@ -8,6 +8,7 @@
 #include "Components/Offboard/MocapStateEstimator.hpp"
 #include "Components/Offboard/QuadcopterController.hpp"
 #include "Components/Offboard/SafetyNet.hpp"
+#include "Components/Offboard/EstimatedState.hpp"
 #include "Components/Logic/QuadcopterConstants.hpp"
 
 #include "hiperlab_rostools/mocap_output.h"
@@ -48,10 +49,9 @@ class ExampleVehicleStateMachine {
 
   void Run(bool shouldStart, bool shouldStop);
 
-  void PublishEstimate(MocapStateEstimator::MocapEstimatedState estState);
+  void PublishEstimate(EstimatedState estState);
 
-  hiperlab_rostools::radio_command RunControllerAndUpdateEstimator(
-      MocapStateEstimator::MocapEstimatedState estState, Vec3d desPos,
+  hiperlab_rostools::radio_command RunControllerAndUpdateEstimator(EstimatedState estState, Vec3d desPos,
       Vec3d desVel, Vec3d desAcc);
 
   void SetDesiredPosition(Vec3d newPos) {

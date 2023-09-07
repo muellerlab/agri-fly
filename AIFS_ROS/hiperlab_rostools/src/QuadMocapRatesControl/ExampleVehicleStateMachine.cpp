@@ -100,7 +100,7 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
   }
 
   // Get the current state estimate and publish to ROS
-  MocapStateEstimator::MocapEstimatedState estState = _est->GetPrediction(
+  EstimatedState estState = _est->GetPrediction(
       _systemLatencyTime);
   _safetyNet->UpdateWithEstimator(estState,
                                   _est->GetTimeSinceLastGoodMeasurement());
@@ -369,7 +369,7 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
 }
 
 void ExampleVehicleStateMachine::PublishEstimate(
-    MocapStateEstimator::MocapEstimatedState estState) {
+    EstimatedState estState) {
   // Publish the current state estimate
 
   hiperlab_rostools::estimator_output estOutMsg;
@@ -401,7 +401,7 @@ void ExampleVehicleStateMachine::PublishEstimate(
 }
 
 hiperlab_rostools::radio_command ExampleVehicleStateMachine::RunControllerAndUpdateEstimator(
-    MocapStateEstimator::MocapEstimatedState estState, Vec3d desPos,
+    EstimatedState estState, Vec3d desPos,
     Vec3d desVel, Vec3d desAcc) {
   // Run the rates controller
   Vec3d cmdAngVel;
