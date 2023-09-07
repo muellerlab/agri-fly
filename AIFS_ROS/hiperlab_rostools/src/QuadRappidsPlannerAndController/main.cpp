@@ -2,13 +2,10 @@
 #include <thread>
 
 #include "ros/ros.h"
-
 #include "ExampleVehicleStateMachine.hpp"
 
 using namespace Offboard;
 using namespace std;
-
-shared_ptr<MocapStateEstimator> est;
 
 //Definitions:
 double const mainLoopFrequency = 50;    //Hz
@@ -87,7 +84,8 @@ int main(int argc, char **argv) {
   cout << "Waiting for estimator init...\n";
   while (ros::ok()) {
     loop_rate.sleep();
-    if (veh.GetIsEstInitialized()) {
+    if (veh.GetIsMocapEstInitialized() || veh.GetIsGPSEstInitialized() ||
+        veh.GetIsOdometryEstInitialized() ) {
       break;
     }
   }

@@ -10,12 +10,15 @@
 #include "Common/DataTypes/TelemetryPacket.hpp"
 #include "Common/Time/HardwareTimer.hpp"
 #include "Components/Offboard/MocapStateEstimator.hpp"
+#include "Components/Offboard/GPSStateEstimator.hpp"
 #include "Components/Offboard/QuadcopterController.hpp"
+#include "Components/Offboard/EstimatedState.hpp"
 #include "Components/Offboard/SafetyNet.hpp"
 #include "Components/Logic/QuadcopterConstants.hpp"
 #include "Components/DepthImagePlanner/DepthImagePlanner.hpp"
 
 #include "hiperlab_rostools/mocap_output.h"
+#include "hiperlab_rostools/gps_output.h"
 #include "hiperlab_rostools/estimator_output.h"
 #include "hiperlab_rostools/radio_command.h"
 #include "hiperlab_rostools/joystick_values.h"
@@ -93,10 +96,24 @@ class ExampleVehicleStateMachine {
     StageEmergency,
   };
 
+  enum EstimatorType {
+    MocapEstimator,
+    GPSEstimator,
+    OdometryEstimator,
+  };
+
   ExampleVehicleStateMachine();
 
-  bool GetIsEstInitialized(void) const {
-    return _est->GetIsInitialized();
+  bool GetIsMocapEstInitialized(void) const {
+    return _mocapEst->GetIsInitialized();
+  }
+
+  bool GetIsGPSEstInitialized(void) const {
+    return _gpsEst->GetIsInitialized();
+  }
+
+  bool GetIsOdometryEstInitialized(void) const {
+    return _odometryEst->GetIsInitialized();
   }
 
   bool GetIsReadyToExit(void) const {
@@ -106,23 +123,28 @@ class ExampleVehicleStateMachine {
   void Initialize(int id, std::string name, ros::NodeHandle &n,
                   BaseTimer *timer, double systemLatencyTime);
 
-  void CallbackEstimator(const hiperlab_rostools::mocap_output &msg);
+  
+  EstimatedState EstGetPrediction(double const dt);
+  void EstSetPredictedValues(Vec3d angVel, Vec3d acceleration);
+  unsigned EstGetID() const;
+  double EstGetTimeSinceLastGoodMeasurement() const;
+
+
+  void CallbackMocapEstimator(const hiperlab_rostools::mocap_output &msg);
+  void CallbackGPSEstimator(const hiperlab_rostools::gps_output &msg);
   void CallbackTelemetry(const hiperlab_rostools::telemetry &msg);
   void CallbackDepthImages(const sensor_msgs::ImageConstPtr &msg);
   void CallbackOdometry(const nav_msgs::Odometry &msg);
-
   void CallbackRGBImages(const sensor_msgs::ImageConstPtr &msg);
-
   void Run(bool shouldStart, bool shouldStop);
-
-  void PublishEstimate(MocapStateEstimator::MocapEstimatedState estState);
+  void PublishEstimate(EstimatedState estState);
 
   hiperlab_rostools::radio_command RunControllerAndUpdateEstimator(
-      MocapStateEstimator::MocapEstimatedState estStatCameraSubscribere,
+      EstimatedState estStatCameraSubscribere,
       Vec3d desPos, Vec3d desVel, Vec3d desAcc);
 
   hiperlab_rostools::radio_command RunTrackingControllerAndUpdateEstimator(
-      MocapStateEstimator::MocapEstimatedState estState, Vec3d refPos,
+      EstimatedState estState, Vec3d refPos,
       Vec3d refVel, Vec3d refAcc, double refThrust, Vec3d refAngVel,
       double &cmdThrustOutput, Rotationf &cmdAttOutput, Vec3d &cmdAngVelOutput);
 
@@ -165,12 +187,13 @@ class ExampleVehicleStateMachine {
     return _lastTelWarnings & TelemetryPacket::WARN_LOW_BATT;
   }
   int _id;
-  std::shared_ptr<MocapStateEstimator> _est;  // This is be a misnomer as we will be using tracking camera for correction update instead of mocap
+  std::shared_ptr<MocapStateEstimator> _mocapEst, _odometryEst;  //Abuse of name here. _odometryEst reuses MocapStateEstimator class. 
+  std::shared_ptr<GPSStateEstimator> _gpsEst;  
   double _systemLatencyTime;  //[s] as used by estimator
   std::shared_ptr<QuadcopterController> _ctrl;
   std::shared_ptr<SafetyNet> _safetyNet;
   std::string _name;
-  std::shared_ptr<ros::Subscriber> _subMocap, _subTelemetry, _subOdometry;
+  std::shared_ptr<ros::Subscriber> _subMocap, _subTelemetry, _subOdometry, _subGPS;
   std::shared_ptr<ros::Publisher> _pubEstimate, _pubCmd, _pubPlannerDiagnotics,
       _pubControllerDiagnotics;
 
@@ -179,6 +202,7 @@ class ExampleVehicleStateMachine {
 
 //state info:
   FlightStage _flightStage, _lastFlightStage;
+  EstimatorType _estType;
   std::shared_ptr<Timer> _stageTimer;  //keep track of time we've been in current stage
 
   volatile uint8_t _lastTelWarnings;
@@ -213,14 +237,12 @@ class ExampleVehicleStateMachine {
   unsigned _rgbImageHeight;
   unsigned _rgbImageWidth;
   Rotationd _rgbTrajAtt;
-
   unsigned _rgbImageCount;
 
   //This estimation global variables will be used for planning
   Rotationd _estAtt;
   Vec3d _estPos;
   Vec3d _estVel;  //In world frame
-  Vec3d _estAngVel;  //In body frame
 
   bool _imageReady;
   bool _startPlan;

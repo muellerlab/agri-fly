@@ -8,6 +8,7 @@ ExampleVehicleStateMachine::ExampleVehicleStateMachine() {
   _id = 0;
 
   _flightStage = StageWaitForStart;
+  _estType = MocapEstimator; // Default use odometry estimator
   _lastFlightStage = StageComplete;
   _systemLatencyTime = 0;
 
@@ -50,18 +51,26 @@ ExampleVehicleStateMachine::ExampleVehicleStateMachine() {
   _firstTrajReady = false;
 }
 
-void ExampleVehicleStateMachine::CallbackEstimator(
+void ExampleVehicleStateMachine::CallbackTelemetry(
+    const hiperlab_rostools::telemetry &msg) {
+  _lastTelWarnings = msg.warnings;
+}
+
+void ExampleVehicleStateMachine::CallbackMocapEstimator(
     const hiperlab_rostools::mocap_output &msg) {
-  if (_est->GetID() == msg.vehicleID) {
-    _est->UpdateWithMeasurement(
+  if (_mocapEst->GetID() == msg.vehicleID) {
+    _mocapEst->UpdateWithMeasurement(
         Vec3d(msg.posx, msg.posy, msg.posz),
         Rotationd(msg.attq0, msg.attq1, msg.attq2, msg.attq3));
   }
 }
 
-void ExampleVehicleStateMachine::CallbackTelemetry(
-    const hiperlab_rostools::telemetry &msg) {
-  _lastTelWarnings = msg.warnings;
+void ExampleVehicleStateMachine::CallbackGPSEstimator(
+    const hiperlab_rostools::gps_output &msg) {
+  if (_gpsEst->GetID() == msg.vehicleID) {
+    _gpsEst->UpdateWithMeasurement(
+        Vec3d(msg.posx, msg.posy, msg.posz));
+  }
 }
 
 void ExampleVehicleStateMachine::CallbackOdometry(
@@ -85,16 +94,15 @@ void ExampleVehicleStateMachine::CallbackOdometry(
       * Rotationd(msg.pose.pose.orientation.w, msg.pose.pose.orientation.x,
                   msg.pose.pose.orientation.y, msg.pose.pose.orientation.z);  //Attitude estimation given by T265
 
-  _est->UpdateWithMeasurement(posOdometry, attOdometry);
+  _odometryEst->UpdateWithMeasurement(posOdometry, attOdometry);
 
-  //! linear velocity and angular velocity are expressed in Body frame
-  Vec3d _estVel_Body = Vec3d(msg.twist.twist.linear.x, msg.twist.twist.linear.y,
-                             msg.twist.twist.linear.z);
-  _estAngVel = Vec3d(msg.twist.twist.angular.x, msg.twist.twist.angular.y,
-                     msg.twist.twist.angular.z);
-  //! rewritten in Inertia frame
-  _estVel = worldFrameToOdometryWorldFrame * _estVel_Body;
-
+  if (_estType == OdometryEstimator){
+    //! linear velocity and angular velocity are expressed in Body frame
+    Vec3d _estVel_Body = Vec3d(msg.twist.twist.linear.x, msg.twist.twist.linear.y,
+                              msg.twist.twist.linear.z);
+    //! rewritten in Inertia frame
+    _estVel = worldFrameToOdometryWorldFrame * _estVel_Body;
+  }
 }
 
 /// @brief 
@@ -162,8 +170,7 @@ void ExampleVehicleStateMachine::CallbackDepthImages(
   ros::Duration decodingTime = finishDecoding - receiveImageTime;
   double offsetTime = (finishDecoding - publishTime).toSec();
   double compTime = 0.015;
-  MocapStateEstimator::MocapEstimatedState estState = _est->GetPrediction(
-      compTime);
+  EstimatedState estState = EstGetPrediction(compTime);
 
   _estAtt = estState.att;
   _estPos = estState.pos;
@@ -323,12 +330,10 @@ void ExampleVehicleStateMachine::CallbackRGBImages(
   /*char buffer[256];
    sprintf(buffer, "%04d", _rgbImageCount);
    std::string str(buffer);
-   std::string file_path = "/home/jbirtman/Documents/AirSim/imgOther" + str
+   std::string file_path = "/home/{path_to_debug_folder}" + str
    + ".bmp";
    cv::imwrite(file_path, otherImage); */
-
   _rgbImageCount++;
-
 }
 
 void ExampleVehicleStateMachine::Initialize(int id, std::string name,
@@ -339,13 +344,17 @@ void ExampleVehicleStateMachine::Initialize(int id, std::string name,
   stringstream ss;
   ss << "[" << name << " (" << _id << ")]: ";
   _name = ss.str();
-//set up networking stuff:
 
-  // Disable mocap update for simulation cases in outdoor environment
-//  _subMocap.reset(
-//      new ros::Subscriber(
-//          n.subscribe("mocap_output" + std::to_string(_id), 1,
-//                      &ExampleVehicleStateMachine::CallbackEstimator, this)));
+//set up networking stuff:
+  _subMocap.reset(
+      new ros::Subscriber(
+          n.subscribe("mocap_output" + std::to_string(_id), 1,
+                      &ExampleVehicleStateMachine::CallbackMocapEstimator, this)));
+
+  _subGPS.reset(
+      new ros::Subscriber(
+          n.subscribe("gps_output" + std::to_string(_id), 1,
+                      &ExampleVehicleStateMachine::CallbackGPSEstimator, this)));
 
   _subTelemetry.reset(
       new ros::Subscriber(
@@ -388,11 +397,14 @@ void ExampleVehicleStateMachine::Initialize(int id, std::string name,
               > ("controller_diagnostics", 10)));
 
 //set up components:
-  _est.reset(new MocapStateEstimator(timer, _id, systemLatencyTime));
+  _mocapEst.reset(new MocapStateEstimator(timer, _id, systemLatencyTime));
+  _odometryEst.reset(new MocapStateEstimator(timer, _id, systemLatencyTime)); //Abuse of name here. We reuse MocapStateEstimator for odometry class as their update methods are same. 
+  _gpsEst.reset(new GPSStateEstimator(timer, _id, systemLatencyTime));
+
   _systemLatencyTime = systemLatencyTime;
   _ctrl.reset(new QuadcopterController());
   _safetyNet.reset(new SafetyNet());
-  _safetyNet->SetSafeCorners(Vec3d(-100,-100,-0.5), Vec3d(100,100,20), 5.0); //made much larger than lab space
+  _safetyNet->SetSafeCorners(Vec3d(-100,-100,-2.0), Vec3d(100,100,20), 5.0); //made much larger than lab space
 
   _flightStage = StageWaitForStart;
   _lastFlightStage = StageComplete;
@@ -413,10 +425,11 @@ void ExampleVehicleStateMachine::Initialize(int id, std::string name,
   _depthCamAtt = Rotationd::FromEulerYPR(-90.0 * M_PI / 180.0, 0 * M_PI / 180.0,
                                          -90 * M_PI / 180.0);
 
-//  _imageReceiveLog.open("depthImageReceiver.csv");
-//  _plannedTrajLog.open("plannedTraj.csv");
+  //  _imageReceiveLog.open("depthImageReceiver.csv");
+  //  _plannedTrajLog.open("plannedTraj.csv");
 
   //Reading first goal
+  //TODO This is not general!!!
   _trajFile.open("/home/teaya/Documents/Repos/agri-fly/AIFS_ROS/hiperlab_rostools/src/QuadRappidsPlannerAndController/trajectory.txt", ios::in);
   string _trajLine;
   if(getline(_trajFile,_trajLine)){
@@ -444,10 +457,9 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
   }
 
 // Get the current state estimate and publish to ROS
-  MocapStateEstimator::MocapEstimatedState estState = _est->GetPrediction(
-      _systemLatencyTime);
+  EstimatedState estState = EstGetPrediction(_systemLatencyTime);
   _safetyNet->UpdateWithEstimator(estState,
-                                  _est->GetTimeSinceLastGoodMeasurement());
+                                  EstGetTimeSinceLastGoodMeasurement());
   PublishEstimate(estState);
 
 // Create radio message depending on the current flight stage
@@ -475,7 +487,7 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
         double const motorSpoolUpTime = 0.5;  //[s]
         double const spoolUpThrustByWeight = 0.25;  //[]
 
-        _est->SetPredictedValues(Vec3d(0, 0, 0), Vec3d(0, 0, 0));
+        EstSetPredictedValues(Vec3d(0, 0, 0), Vec3d(0, 0, 0));
         double cmdThrust = 9.81 * spoolUpThrustByWeight;
         Vec3d cmdAngVel(0, 0, 0);
         RadioTypes::RadioMessageDecoded::CreateRatesCommand(0, float(cmdThrust),
@@ -739,8 +751,7 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
       }
 
       {
-        _est->SetPredictedValues(Vec3d(0, 0, 0), Vec3d(0, 0, 0));
-
+        EstSetPredictedValues(Vec3d(0, 0, 0), Vec3d(0, 0, 0));
         //Publish the commands:
         RadioTypes::RadioMessageDecoded::CreateIdleCommand(0, rawMsg);
         for (int i = 0; i < RadioTypes::RadioMessageDecoded::RAW_PACKET_SIZE;
@@ -779,13 +790,77 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
 
 }
 
-void ExampleVehicleStateMachine::PublishEstimate(
-    MocapStateEstimator::MocapEstimatedState estState) {
+EstimatedState ExampleVehicleStateMachine::EstGetPrediction(double const dt){
+  switch (_estType) {
+    case MocapEstimator:
+        return _mocapEst->GetPrediction(dt);
+
+    case GPSEstimator:
+        return _gpsEst->GetPrediction(dt);
+
+    case OdometryEstimator:
+        return _odometryEst->GetPrediction(dt);
+
+    default:
+        // You should decide on a default return value or perhaps throw an exception
+        throw std::runtime_error("Unknown estimator type!");
+  }
+}
+
+void ExampleVehicleStateMachine::EstSetPredictedValues(Vec3d angVel, Vec3d acceleration){
+  switch (_estType) {
+    case MocapEstimator:
+        return _mocapEst->SetPredictedValues(angVel, acceleration);
+
+    case GPSEstimator:
+        return _gpsEst->SetPredictedValues(angVel, acceleration);
+
+    case OdometryEstimator:
+        return _odometryEst->SetPredictedValues(angVel, acceleration);
+    default:
+        // You should decide on a default return value or perhaps throw an exception
+        throw std::runtime_error("Unknown estimator type!");
+  }
+}
+
+unsigned ExampleVehicleStateMachine::EstGetID() const {
+  switch (_estType) {
+    case MocapEstimator:
+        return _mocapEst->GetID();
+
+    case GPSEstimator:
+        return _gpsEst->GetID();
+
+    case OdometryEstimator:
+        return _odometryEst->GetID();
+    default:
+        // You should decide on a default return value or perhaps throw an exception
+        throw std::runtime_error("Unknown estimator type!");
+  }
+}
+
+double ExampleVehicleStateMachine::EstGetTimeSinceLastGoodMeasurement() const {
+  switch (_estType) {
+    case MocapEstimator:
+        return _mocapEst->GetTimeSinceLastGoodMeasurement();
+
+    case GPSEstimator:
+        return _gpsEst->GetTimeSinceLastGoodMeasurement();
+
+    case OdometryEstimator:
+        return _odometryEst->GetTimeSinceLastGoodMeasurement();
+    default:
+        // You should decide on a default return value or perhaps throw an exception
+        throw std::runtime_error("Unknown estimator type!");
+  }
+}
+
+void ExampleVehicleStateMachine::PublishEstimate(EstimatedState estState) {
 // Publish the current state estimate
 
   hiperlab_rostools::estimator_output estOutMsg;
   estOutMsg.header.stamp = ros::Time::now();
-  estOutMsg.vehicleID = _est->GetID();
+  estOutMsg.vehicleID = EstGetID();
 
   estOutMsg.posx = estState.pos.x;
   estOutMsg.posy = estState.pos.y;
@@ -812,7 +887,7 @@ void ExampleVehicleStateMachine::PublishEstimate(
 }
 
 hiperlab_rostools::radio_command ExampleVehicleStateMachine::RunControllerAndUpdateEstimator(
-    MocapStateEstimator::MocapEstimatedState estState, Vec3d desPos,
+    EstimatedState estState, Vec3d desPos,
     Vec3d desVel, Vec3d desAcc) {
 // Run the rates controller
   Vec3d cmdAngVel;
@@ -820,8 +895,8 @@ hiperlab_rostools::radio_command ExampleVehicleStateMachine::RunControllerAndUpd
   _ctrl->Run(estState.pos, estState.vel, estState.att, desPos, desVel, desAcc,
              _cmdYawAngle, cmdAngVel, cmdThrust);
 
-//Tell the estimator:
-  _est->SetPredictedValues(
+  //Tell the estimator:
+  EstSetPredictedValues(
       cmdAngVel,
       (estState.att * Vec3d(0, 0, 1) * cmdThrust - Vec3d(0, 0, 9.81)));
 
@@ -843,7 +918,7 @@ hiperlab_rostools::radio_command ExampleVehicleStateMachine::RunControllerAndUpd
 }
 
 hiperlab_rostools::radio_command ExampleVehicleStateMachine::RunTrackingControllerAndUpdateEstimator(
-    MocapStateEstimator::MocapEstimatedState estState, Vec3d refPos,
+    EstimatedState estState, Vec3d refPos,
     Vec3d refVel, Vec3d refAcc, double refThrust, Vec3d refAngVel,
     double &cmdThrustOutput, Rotationf &cmdAttOutput, Vec3d &cmdAngVelOutput) {
 
@@ -860,7 +935,7 @@ hiperlab_rostools::radio_command ExampleVehicleStateMachine::RunTrackingControll
   cmdAttOutput = cmdAtt;
   cmdAngVelOutput = cmdAngVel;
   //Tell the estimator:
-  _est->SetPredictedValues(
+  EstSetPredictedValues(
       cmdAngVel,
       (estState.att * Vec3d(0, 0, 1) * cmdThrust - Vec3d(0, 0, 9.81)));
 
