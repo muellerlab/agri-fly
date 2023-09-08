@@ -264,7 +264,17 @@ void GPSStateEstimator::UpdateWithMeasurement(Vec3d const measPos) {
 	H(2, 2) = 1.0f;
 
 	SquareMatrix<double, 3> innovationCov = H * (_cov * H.transpose()) + _measNoiseStdDevPos*_measNoiseStdDevPos*IdentityMatrix<double, 3>();
-	SquareMatrix<double, 3> innovationCovInv = MatrixInverse<double, 3>(innovationCov);
+
+  SquareMatrix<double, 3> innovationCovInv;
+  try {
+      innovationCovInv = MatrixInverse<double, 3>(innovationCov);
+  } catch (const std::exception& e) {
+      // Handle the inversion failure
+      std::cerr << "Matrix inversion failed: " << e.what() << std::endl;
+      _pos = measPos;
+      return;
+  }
+
 	Matrix<double, 9, 3> L = _cov * H.transpose() * innovationCovInv;
 
 	//convert _vel to matrix form
@@ -283,5 +293,6 @@ void GPSStateEstimator::UpdateWithMeasurement(Vec3d const measPos) {
 	_cov = 0.5 * (_cov + _cov.transpose());
 
   //clear expired messages
+  _lastGoodMeasUpdate.Reset(); // Reset the timer. This is the last time we got a good measurement
   _predictionPipe.ClearExpiredMessages(_estimateTimer.GetSeconds<double>());
 }
