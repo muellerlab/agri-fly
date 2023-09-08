@@ -367,12 +367,11 @@ void ExampleVehicleStateMachine::Initialize(int id, std::string name,
                       &ExampleVehicleStateMachine::CallbackOdometry, this,
                       ros::TransportHints().tcpNoDelay())));
 
-  image_transport::ImageTransport _it(n);
+  image_transport::ImageTransport _it(n); // Depth image transporter
+  image_transport::ImageTransport _rgbIt(n); // Rgp image transporter
 
   _subDepthImages = _it.subscribe(
       "depthImage", 1, &ExampleVehicleStateMachine::CallbackDepthImages, this);  // Follow Nathan's example in generating the image subscriber
-
-  image_transport::ImageTransport _rgbIt(n);
 
   _subRGBImages = _rgbIt.subscribe(
       "rgbImage", 1, &ExampleVehicleStateMachine::CallbackRGBImages, this);
@@ -381,6 +380,7 @@ void ExampleVehicleStateMachine::Initialize(int id, std::string name,
       new ros::Publisher(
           n.advertise < hiperlab_rostools::estimator_output
               > ("estimator" + std::to_string(_id), 1)));
+
   _pubCmd.reset(
       new ros::Publisher(
           n.advertise < hiperlab_rostools::radio_command
@@ -397,14 +397,14 @@ void ExampleVehicleStateMachine::Initialize(int id, std::string name,
               > ("controller_diagnostics", 10)));
 
 //set up components:
+  _gpsEst.reset(new GPSStateEstimator(timer, _id, systemLatencyTime));
   _mocapEst.reset(new MocapStateEstimator(timer, _id, systemLatencyTime));
   _odometryEst.reset(new MocapStateEstimator(timer, _id, systemLatencyTime)); //Abuse of name here. We reuse MocapStateEstimator for odometry class as their update methods are same. 
-  _gpsEst.reset(new GPSStateEstimator(timer, _id, systemLatencyTime));
 
   _systemLatencyTime = systemLatencyTime;
   _ctrl.reset(new QuadcopterController());
   _safetyNet.reset(new SafetyNet());
-  _safetyNet->SetSafeCorners(Vec3d(-100,-100,-2.0), Vec3d(100,100,20), 5.0); //made much larger than lab space
+  _safetyNet->SetSafeCorners(Vec3d(-100,-100,-2.0), Vec3d(100,100,20), 0.0);
 
   _flightStage = StageWaitForStart;
   _lastFlightStage = StageComplete;
@@ -444,7 +444,6 @@ void ExampleVehicleStateMachine::Initialize(int id, std::string name,
     _goalWorld.z = stof(linePiece);
     cout << _name << "Initial waypoint = <" << _goalWorld.x << "," << _goalWorld.y << "," << _goalWorld.z << ">\n";
   }
-
   cout << _name << "Created.\n";
 }
 
@@ -458,6 +457,7 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
 
 // Get the current state estimate and publish to ROS
   EstimatedState estState = EstGetPrediction(_systemLatencyTime);
+  cout << estState.vel.x << "," << estState.vel.y << "," << estState.vel.z << "\n";
   _safetyNet->UpdateWithEstimator(estState,
                                   EstGetTimeSinceLastGoodMeasurement());
   PublishEstimate(estState);

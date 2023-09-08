@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
     return -1;
   }
 
-  ros::init(argc, argv, "quad_mocap_rates_control" + std::to_string(vehicleId));
+  ros::init(argc, argv, "quad_rappids_rates_control" + std::to_string(vehicleId));
 
   for (int i = 2; i < argc; i++) {
     if (!strcmp(argv[i], "--no-js")) {
@@ -84,8 +84,8 @@ int main(int argc, char **argv) {
   cout << "Waiting for estimator init...\n";
   while (ros::ok()) {
     loop_rate.sleep();
-    if (veh.GetIsMocapEstInitialized() || veh.GetIsGPSEstInitialized() ||
-        veh.GetIsOdometryEstInitialized() ) {
+    if (veh.GetIsGPSEstInitialized() &&
+        veh.GetIsOdometryEstInitialized()) {
       break;
     }
   }
