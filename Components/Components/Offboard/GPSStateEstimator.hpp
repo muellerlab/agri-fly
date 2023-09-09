@@ -93,6 +93,8 @@ class GPSStateEstimator {
 
   void UpdateWithMeasurement(Vec3d const position);
 
+  EstimatedState GetCurrentEstimate();
+
   double GetTimeSinceLastGoodMeasurement() const {
     return _lastGoodMeasUpdate.GetSeconds<double>();
   }

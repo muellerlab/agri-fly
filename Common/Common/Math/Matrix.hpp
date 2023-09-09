@@ -54,4 +54,15 @@ SquareMatrix<Real, M> MatrixInverse(SquareMatrix<Real, M> inputMatrix) {
 	return inputMatrix.inverse();
 }
 
+template<typename Real, int M>
+bool MatrixAllFinite(SquareMatrix<Real, M> inputMatrix) {
+	return inputMatrix.allFinite();
+}
+
+template<typename Real, int M>
+Real MatrixDeterminant(SquareMatrix<Real, M> inputMatrix) {
+	return inputMatrix.determinant();
+}
+
+
 #endif

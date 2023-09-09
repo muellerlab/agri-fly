@@ -187,7 +187,8 @@ class ExampleVehicleStateMachine {
     return _lastTelWarnings & TelemetryPacket::WARN_LOW_BATT;
   }
   int _id;
-  std::shared_ptr<MocapStateEstimator> _mocapEst, _odometryEst;  //Abuse of name here. _odometryEst reuses MocapStateEstimator class. 
+  std::shared_ptr<MocapStateEstimator> _mocapEst;
+  std::shared_ptr<MocapStateEstimator> _odometryEst;  //Abuse of name here. _odometryEst reuses MocapStateEstimator class. 
   std::shared_ptr<GPSStateEstimator> _gpsEst;  
   double _systemLatencyTime;  //[s] as used by estimator
   std::shared_ptr<QuadcopterController> _ctrl;

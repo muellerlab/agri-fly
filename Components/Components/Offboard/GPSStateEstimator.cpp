@@ -24,13 +24,13 @@ GPSStateEstimator::GPSStateEstimator(BaseTimer* const masterTimer,
   _systemLatency = 0.0;
 
 
-  _initStdDevPos = 0.0;  //[m]
-  _initStdDevVel = 0.0;  //[m/s]
+  _initStdDevPos = 0.5;  //[m]
+  _initStdDevVel = 0.2;  //[m/s]
   _lastMeasUpdateAttCorrection = Vec3d(0, 0, 0);
   _initStdDevAtt = 5.0 * M_PI / 180.0;  //[rad]
 
   //rough guesses!
-  _measNoiseStdDevPos = 0.02;  //[m]
+  _measNoiseStdDevPos = 0.25;  //[m]
   _procNoiseStdDevAcc = 1.06f;  //[m/s**2]  
   _procNoiseStdDevAngVel = 0.1f;  //[rad/s]
   Reset();
@@ -52,12 +52,24 @@ void GPSStateEstimator::Reset() {
 }
 
 void GPSStateEstimator::ResetVariance() {
+  _cov = ZeroMatrix<double, NUM_STATES, NUM_STATES>();
   for (int i = 0; i < 3; i++) {
     _cov(I_POS + i, I_POS + i) = _initStdDevPos * _initStdDevPos;
     _cov(I_VEL + i, I_VEL + i) = _initStdDevVel * _initStdDevVel;
     _cov(I_ATT + i, I_ATT + i) = _initStdDevAtt
       * _initStdDevAtt;
   }
+}
+
+
+EstimatedState  GPSStateEstimator::GetCurrentEstimate() {
+  std::lock_guard<std::mutex> guard(_mutexEstimate);
+  EstimatedState est;
+  est.pos = _pos;
+  est.vel = _vel;
+  est.att = _att;
+  est.angVel = _angVel;
+  return est;
 }
 
 EstimatedState GPSStateEstimator::GetPrediction(
@@ -121,7 +133,7 @@ void GPSStateEstimator::UpdateWithMeasurement(Vec3d const measPos) {
     _pos = measPos;
     _vel = Vec3d(0, 0, 0);
     _att = Rotationd::Identity();
-    _lastMeasAtt = _att;
+    _lastMeasAtt = Rotationd::Identity();
     _angVel = Vec3d(0, 0, 0);
     _lastGoodMeasUpdate.Reset();
     ResetVariance();
@@ -259,28 +271,34 @@ void GPSStateEstimator::UpdateWithMeasurement(Vec3d const measPos) {
   }
 
 	Matrix<double, 3, 9> H = ZeroMatrix<double, 3, 9>();
-	H(0, 0) = 1.0f;
-	H(1, 1) = 1.0f;
-	H(2, 2) = 1.0f;
+	H(0, 0) = 1.0;
+	H(1, 1) = 1.0;
+	H(2, 2) = 1.0;
 
-	SquareMatrix<double, 3> innovationCov = H * (_cov * H.transpose()) + _measNoiseStdDevPos*_measNoiseStdDevPos*IdentityMatrix<double, 3>();
+	SquareMatrix<double, 3> innovationCov = H * (_cov * H.transpose()) + _measNoiseStdDevPos * _measNoiseStdDevPos * IdentityMatrix<double, 3>();
 
-  SquareMatrix<double, 3> innovationCovInv;
-  try {
-      innovationCovInv = MatrixInverse<double, 3>(innovationCov);
-  } catch (const std::exception& e) {
-      // Handle the inversion failure
-      std::cerr << "Matrix inversion failed: " << e.what() << std::endl;
+  // Check if the determinant is close to zero or if the matrix contains NaN values
+  double det = innovationCov.determinant();
+  if (std::abs(det) < 1e-10 || !innovationCov.allFinite()) {
+      std::cerr << "Matrix inversion not possible due to singularity or NaN values." << std::endl;
       _pos = measPos;
+      _vel = Vec3d(0, 0, 0);
+      _att = Rotationd::Identity();
+      _lastMeasAtt = Rotationd::Identity();
+      _angVel = Vec3d(0, 0, 0);
+      _lastGoodMeasUpdate.Reset();
+      ResetVariance();
       return;
   }
 
+  SquareMatrix<double, 3> innovationCovInv = MatrixInverse<double, 3>(innovationCov);
 	Matrix<double, 9, 3> L = _cov * H.transpose() * innovationCovInv;
 
 	//convert _vel to matrix form
 	Matrix<double, 3, 1> deltaPos;
 	deltaPos(0,0) = measPos.x-_pos.x; deltaPos(1,0) = measPos.y-_pos.y; deltaPos(2,0) = measPos.z-_pos.z;
-	Matrix<double, 9, 1> dx = L * (deltaPos);
+
+  Matrix<double, 9, 1> dx = L * (deltaPos);
 
 	_pos = _pos + Vec3d(dx(I_POS + 0, 0), dx(I_POS + 1, 0), dx(I_POS + 2, 0));
 	_vel = _vel + Vec3d(dx(I_VEL + 0, 0), dx(I_VEL + 1, 0), dx(I_VEL + 2, 0));

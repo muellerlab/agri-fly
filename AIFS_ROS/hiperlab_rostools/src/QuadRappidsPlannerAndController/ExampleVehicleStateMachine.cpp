@@ -8,7 +8,7 @@ ExampleVehicleStateMachine::ExampleVehicleStateMachine() {
   _id = 0;
 
   _flightStage = StageWaitForStart;
-  _estType = MocapEstimator; // Default use odometry estimator
+  _estType = GPSEstimator; // Default use odometry estimator
   _lastFlightStage = StageComplete;
   _systemLatencyTime = 0;
 
@@ -457,7 +457,6 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
 
 // Get the current state estimate and publish to ROS
   EstimatedState estState = EstGetPrediction(_systemLatencyTime);
-  cout << estState.vel.x << "," << estState.vel.y << "," << estState.vel.z << "\n";
   _safetyNet->UpdateWithEstimator(estState,
                                   EstGetTimeSinceLastGoodMeasurement());
   PublishEstimate(estState);

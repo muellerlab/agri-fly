@@ -102,7 +102,6 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
   EstimatedState estState = _est->GetPrediction(
       _systemLatencyTime);
 
-  cout << estState.vel.x << "," << estState.vel.y << "," << estState.vel.z << "\n";
   _safetyNet->UpdateWithEstimator(estState,
                                   _est->GetTimeSinceLastGoodMeasurement());
   PublishEstimate(estState);
