@@ -26,6 +26,7 @@
 
 #include "hiperlab_rostools/mocap_output.h"
 #include "hiperlab_rostools/gps_output.h"
+#include "hiperlab_rostools/imu_output.h"
 #include "hiperlab_rostools/simulator_truth.h"
 #include "hiperlab_rostools/radio_command.h"
 #include "hiperlab_rostools/telemetry.h"
@@ -68,6 +69,7 @@ class SimVehicle {
   std::shared_ptr<ros::Publisher> pubImagePoll;
   std::shared_ptr<ros::Publisher> pubOdometry;
   std::shared_ptr<ros::Publisher> pubGPS;
+  std::shared_ptr<ros::Publisher> pubIMU;
 
   int id;
   Vec3d _initPos;
@@ -184,7 +186,10 @@ int main(int argc, char **argv) {
       new ros::Publisher(
           n.advertise<hiperlab_rostools::gps_output>(
               "gps_output" + std::to_string(vehicleId), 1)));
-
+  v->pubIMU.reset(
+      new ros::Publisher(
+          n.advertise<hiperlab_rostools::imu_output>(
+              "imu_output" + std::to_string(vehicleId), 1)));
   v->pubTelemetry.reset(
       new ros::Publisher(
           n.advertise<hiperlab_rostools::telemetry>(
@@ -214,7 +219,7 @@ int main(int argc, char **argv) {
   const double frequencyDepthImage = 30.0;  //[Hz]
   const double frequencyOdometry = 250.0;  //[Hz] Update rate at 250Hz. 
   const double frequencyGPSOutput = 100.0; //[Hz] Update rate at 100Hz
-
+  const double frequencyIMUOutput = 500.0; //[Hz] Update rate at 500Hz
 
   HardwareTimer simTimer;
 
@@ -289,6 +294,7 @@ int main(int argc, char **argv) {
   double timePrintNextInfo = 0;
   double timePublishNextMocap = 0;
   double timePublishNextGPS = 0;
+  double timePublishNextIMU = 0;
   double timePublishNextTelemetry = 0;
   double timePublishNextOdometry = 0;
   double timeGetNextDepthImage = 0;
@@ -413,6 +419,26 @@ int main(int argc, char **argv) {
       gpsOutMsg.posy = measPos.y;
       gpsOutMsg.posz = measPos.z;
       v->pubGPS->publish(gpsOutMsg);
+    }
+
+
+    if (t.GetSeconds<double>() > timePublishNextIMU) {
+      timePublishNextIMU += 1 / frequencyIMUOutput;
+      hiperlab_rostools::imu_output imuOutMsg;
+      imuOutMsg.header.stamp = ros::Time::now();
+      imuOutMsg.vehicleID = v->id;
+      
+      Vec3d accMeasIMU;
+      v->vehicle->GetAccelerometer(accMeasIMU);
+      Vec3d gyroMeasIMU;
+      v->vehicle->GetRateGyroBiasCorrected(gyroMeasIMU);
+      imuOutMsg.accmeasx = accMeasIMU.x;
+      imuOutMsg.accmeasy = accMeasIMU.y;
+      imuOutMsg.accmeasz = accMeasIMU.z;
+      imuOutMsg.gyromeasx = gyroMeasIMU.x;
+      imuOutMsg.gyromeasy = gyroMeasIMU.y;
+      imuOutMsg.gyromeasz = gyroMeasIMU.z;
+      v->pubIMU->publish(imuOutMsg);
     }
 
     //Publish also the simulation truth:

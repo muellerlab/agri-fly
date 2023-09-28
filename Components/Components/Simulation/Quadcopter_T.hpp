@@ -72,6 +72,17 @@ class Quadcopter_T : public SimulationObject6DOF {
     return;
   }
 
+  virtual void GetAccelerometer(Vec3d &acc) {
+    acc = Vec3d(_logic.GetAccelerometer());
+    return;
+  }
+
+  virtual void GetRateGyroBiasCorrected(Vec3d &rateGyro) {
+    rateGyro = Vec3d(_logic.GetRateGyroBiasCorrected());
+    return;
+  }
+
+
  protected:
   //NOTE! You must add them in the order of the enum, above (FR>LE>RE>RI)
   void AddMotor(Vec3d position, Vec3d spinDirection,
