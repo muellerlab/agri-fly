@@ -1,15 +1,14 @@
 #include "GPSIMUStateEstimator.hpp"
 #include <iostream>
 
-using namespace Offboard;
+using namespace Offboard; //TODO: this is a misnomer. We are using some "offboard" tools in the code here. Should be renamed to something more generic.
 
-unsigned const MAX_NUM_CONSECUTIVE_REJECTION = 10;  //TODO: make this a parameter
+unsigned const MAX_NUM_CONSECUTIVE_REJECTION = 10; 
 double const SMALL_TIME = 1e-6;  // [s]
 
 GPSIMUStateEstimator::GPSIMUStateEstimator(BaseTimer* const masterTimer, unsigned const id)
     : _id(id),
-      _estimateTimer(),
-      _timer(masterTimer),
+      _estimateTimer(masterTimer),
       _lastGoodMeasUpdate(masterTimer),
       _initialized(false) {
 
@@ -18,15 +17,15 @@ GPSIMUStateEstimator::GPSIMUStateEstimator(BaseTimer* const masterTimer, unsigne
   _timeConstantTrackAngVel = 0.04;  //TODO!
   _systemLatency = 0.0;
 
-  _initStdDevPos = 0.5;  //[m]
-  _initStdDevVel = 0.2;  //[m/s]
-  _lastMeasUpdateAttCorrection = Vec3d(0, 0, 0);
-  _initStdDevAtt = 5.0 * M_PI / 180.0;  //[rad]
+  //TODO: Sensible numbers here!
+  _initStdDevPos = 3.0;  //[m]
+  _initStdDevVel = 3.0;  //[m/s]
+  _initStdDevAtt = 10.0 * double(M_PI) / 180.0;  //[rad]
 
-  //rough guesses!
+  _measNoiseStdDevAccelerometer = 5;  //[m/s**2]
+  _measNoiseStdDevRateGyro = 0.1;  //[rad/s]
   _measNoiseStdDevPos = 0.25;  //[m]
-  _measNoiseStdDevAccelerometer = 1.06f;  //[m/s**2]  
-  _measNoiseStdDevRateGyro = 0.1f;  //[rad/s]
+
   Reset();
 }
 
@@ -38,7 +37,9 @@ void GPSIMUStateEstimator::Reset() {
   _att = Rotationd::Identity();
   _lastMeasAtt = Rotationd::Identity();
   _angVel = Vec3d(0, 0, 0);
-
+  //estimate is valid *now*:
+  _estimateTimer.Reset();
+  _lastGoodMeasUpdate.Reset();
   ResetVariance();
 }
 
@@ -62,10 +63,11 @@ EstimatedState GPSIMUStateEstimator::GetCurrentEstimate() {
   return est;
 }
 
-void GPSIMUStateEstimator::Predict(Vec3d const measGyro, Vec3d const measAcc, double const dt) {
+void GPSIMUStateEstimator::Predict(Vec3d const measAcc, Vec3d const measGyro) {
   if (!_initialized) {
     Reset();
     _initialized = true;
+    _estimateTimer.Reset();
 
     /*Assume we're measuring gravity; construct a consistent initial attitude:
      *
@@ -100,6 +102,13 @@ void GPSIMUStateEstimator::Predict(Vec3d const measGyro, Vec3d const measAcc, do
     return;
   }
 
+
+  //time since last run:
+  double const dt = _estimateTimer.GetSeconds<double>();
+
+  
+  _estimateTimer.Reset();
+
   //mean prediction: //we're assuming that dt**2 ~= 0
   Vec3d const pos(_pos);
   Vec3d const vel(_vel);
@@ -111,6 +120,7 @@ void GPSIMUStateEstimator::Predict(Vec3d const measGyro, Vec3d const measAcc, do
   _att = att * Rotationd::FromRotationVector(measGyro * dt);  //NOTE: we're using the rate gyro to integrate, not old estimate
   _angVel = measGyro;
 
+  //Update the covariance matrix
   double rotMat[9];
   att.GetRotationMatrix(rotMat);
   SquareMatrix<double, NUM_STATES> f = ZeroMatrix<double, NUM_STATES, NUM_STATES>();
@@ -244,4 +254,5 @@ void GPSIMUStateEstimator::UpdateWithMeasurement(Vec3d const measPos) {
 	//covariance update:
 	_cov = (IdentityMatrix<double, NUM_STATES>() - L * H) * _cov;
 	_cov = 0.5 * (_cov + _cov.transpose());
+  _lastGoodMeasUpdate.Reset();
 }

@@ -52,7 +52,7 @@ class GPSIMUStateEstimator {
   }
 
 
-  void Predict(Vec3d const gyro, Vec3d const acc, double const dt);  //Kalman filter prediction step.
+  void Predict(Vec3d const acc, Vec3d const gyro);  //Kalman filter prediction step.
 
   void Reset();  //Hard reset of all internal states
 
@@ -107,9 +107,8 @@ class GPSIMUStateEstimator {
  private:
   unsigned _id;
 
-  ManualTimer _estimateTimer;  //time at which estimate is valid
-  Timer _timer;  //wall clock
-  Timer _lastGoodMeasUpdate;  //time since we last used a measurement
+  Timer _estimateTimer;  //time at which estimate is valid
+  Timer _lastGoodMeasUpdate;   //time since we last used a measurement
   bool _initialized; 
   unsigned _numResets;
 

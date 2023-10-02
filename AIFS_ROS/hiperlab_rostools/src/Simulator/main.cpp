@@ -431,7 +431,7 @@ int main(int argc, char **argv) {
       Vec3d accMeasIMU;
       v->vehicle->GetAccelerometer(accMeasIMU);
       Vec3d gyroMeasIMU;
-      v->vehicle->GetRateGyroBiasCorrected(gyroMeasIMU);
+      v->vehicle->GetRateGyro(gyroMeasIMU);
       imuOutMsg.accmeasx = accMeasIMU.x;
       imuOutMsg.accmeasy = accMeasIMU.y;
       imuOutMsg.accmeasz = accMeasIMU.z;

@@ -77,8 +77,8 @@ class Quadcopter_T : public SimulationObject6DOF {
     return;
   }
 
-  virtual void GetRateGyroBiasCorrected(Vec3d &rateGyro) {
-    rateGyro = Vec3d(_logic.GetRateGyroBiasCorrected());
+  virtual void GetRateGyro(Vec3d &rateGyro) {
+    rateGyro = Vec3d(_logic.GetRateGyro());
     return;
   }
 

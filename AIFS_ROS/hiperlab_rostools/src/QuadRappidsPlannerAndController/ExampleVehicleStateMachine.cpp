@@ -65,6 +65,17 @@ void ExampleVehicleStateMachine::CallbackMocapEstimator(
   }
 }
 
+void ExampleVehicleStateMachine::CallbackIMU(
+    const hiperlab_rostools::imu_output& msg) {
+  if (_estType == GPSEstimator) {
+    if (_gpsEst->GetID() == msg.vehicleID) {
+      Vec3d accMeas(msg.accmeasx, msg.accmeasy, msg.accmeasz);
+      Vec3d gyroMeas(msg.gyromeasx, msg.gyromeasy, msg.gyromeasz);
+      _gpsEst->Predict(accMeas, gyroMeas);
+    }
+  }
+}
+
 void ExampleVehicleStateMachine::CallbackGPSEstimator(
     const hiperlab_rostools::gps_output &msg) {
   if (_gpsEst->GetID() == msg.vehicleID) {
@@ -170,7 +181,7 @@ void ExampleVehicleStateMachine::CallbackDepthImages(
   ros::Duration decodingTime = finishDecoding - receiveImageTime;
   double offsetTime = (finishDecoding - publishTime).toSec();
   double compTime = 0.015;
-  EstimatedState estState = EstGetPrediction(compTime);
+  EstimatedState estState = EstGetState(compTime);
 
   _estAtt = estState.att;
   _estPos = estState.pos;
@@ -356,6 +367,11 @@ void ExampleVehicleStateMachine::Initialize(int id, std::string name,
           n.subscribe("gps_output" + std::to_string(_id), 1,
                       &ExampleVehicleStateMachine::CallbackGPSEstimator, this)));
 
+  _subIMU.reset(
+      new ros::Subscriber(
+          n.subscribe("imu_output" + std::to_string(_id), 1,
+                      &ExampleVehicleStateMachine::CallbackIMU, this)));
+
   _subTelemetry.reset(
       new ros::Subscriber(
           n.subscribe("telemetry" + std::to_string(_id), 1,
@@ -397,7 +413,7 @@ void ExampleVehicleStateMachine::Initialize(int id, std::string name,
               > ("controller_diagnostics", 10)));
 
 //set up components:
-  _gpsEst.reset(new GPSStateEstimator(timer, _id, systemLatencyTime));
+  _gpsEst.reset(new GPSIMUStateEstimator(timer, _id));
   _mocapEst.reset(new MocapStateEstimator(timer, _id, systemLatencyTime));
   _odometryEst.reset(new MocapStateEstimator(timer, _id, systemLatencyTime)); //Abuse of name here. We reuse MocapStateEstimator for odometry class as their update methods are same. 
 
@@ -456,7 +472,7 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
   }
 
 // Get the current state estimate and publish to ROS
-  EstimatedState estState = EstGetPrediction(_systemLatencyTime);
+  EstimatedState estState = EstGetState(_systemLatencyTime);
   _safetyNet->UpdateWithEstimator(estState,
                                   EstGetTimeSinceLastGoodMeasurement());
   PublishEstimate(estState);
@@ -789,13 +805,13 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
 
 }
 
-EstimatedState ExampleVehicleStateMachine::EstGetPrediction(double const dt){
+EstimatedState ExampleVehicleStateMachine::EstGetState(double const dt){
   switch (_estType) {
     case MocapEstimator:
         return _mocapEst->GetPrediction(dt);
 
     case GPSEstimator:
-        return _gpsEst->GetPrediction(dt);
+        return _gpsEst->GetCurrentEstimate();
 
     case OdometryEstimator:
         return _odometryEst->GetPrediction(dt);
@@ -812,7 +828,8 @@ void ExampleVehicleStateMachine::EstSetPredictedValues(Vec3d angVel, Vec3d accel
         return _mocapEst->SetPredictedValues(angVel, acceleration);
 
     case GPSEstimator:
-        return _gpsEst->SetPredictedValues(angVel, acceleration);
+        // Do nothing for the GPS estimator. It does not depend on commands.
+        return;
 
     case OdometryEstimator:
         return _odometryEst->SetPredictedValues(angVel, acceleration);

@@ -11,6 +11,7 @@
 #include "Common/Time/HardwareTimer.hpp"
 #include "Components/Offboard/MocapStateEstimator.hpp"
 #include "Components/Offboard/GPSStateEstimator.hpp"
+#include "Components/Offboard/GPSIMUStateEstimator.hpp"
 #include "Components/Offboard/QuadcopterController.hpp"
 #include "Components/Offboard/EstimatedState.hpp"
 #include "Components/Offboard/SafetyNet.hpp"
@@ -19,6 +20,7 @@
 
 #include "hiperlab_rostools/mocap_output.h"
 #include "hiperlab_rostools/gps_output.h"
+#include "hiperlab_rostools/imu_output.h"
 #include "hiperlab_rostools/estimator_output.h"
 #include "hiperlab_rostools/radio_command.h"
 #include "hiperlab_rostools/joystick_values.h"
@@ -124,7 +126,7 @@ class ExampleVehicleStateMachine {
                   BaseTimer *timer, double systemLatencyTime);
 
   
-  EstimatedState EstGetPrediction(double const dt);
+  EstimatedState EstGetState(double const dt); //If use estimators relying on command, we can setup look ahead dt.
   void EstSetPredictedValues(Vec3d angVel, Vec3d acceleration);
   unsigned EstGetID() const;
   double EstGetTimeSinceLastGoodMeasurement() const;
@@ -132,6 +134,7 @@ class ExampleVehicleStateMachine {
 
   void CallbackMocapEstimator(const hiperlab_rostools::mocap_output &msg);
   void CallbackGPSEstimator(const hiperlab_rostools::gps_output &msg);
+  void CallbackIMU(const hiperlab_rostools::imu_output &msg);
   void CallbackTelemetry(const hiperlab_rostools::telemetry &msg);
   void CallbackDepthImages(const sensor_msgs::ImageConstPtr &msg);
   void CallbackOdometry(const nav_msgs::Odometry &msg);
@@ -189,12 +192,12 @@ class ExampleVehicleStateMachine {
   int _id;
   std::shared_ptr<MocapStateEstimator> _mocapEst;
   std::shared_ptr<MocapStateEstimator> _odometryEst;  //Abuse of name here. _odometryEst reuses MocapStateEstimator class. 
-  std::shared_ptr<GPSStateEstimator> _gpsEst;  
+  std::shared_ptr<GPSIMUStateEstimator> _gpsEst;  
   double _systemLatencyTime;  //[s] as used by estimator
   std::shared_ptr<QuadcopterController> _ctrl;
   std::shared_ptr<SafetyNet> _safetyNet;
   std::string _name;
-  std::shared_ptr<ros::Subscriber> _subMocap, _subTelemetry, _subOdometry, _subGPS;
+  std::shared_ptr<ros::Subscriber> _subMocap, _subTelemetry, _subOdometry, _subGPS, _subIMU;
   std::shared_ptr<ros::Publisher> _pubEstimate, _pubCmd, _pubPlannerDiagnotics,
       _pubControllerDiagnotics;
 

@@ -69,7 +69,7 @@ class SimulationObject6DOF : public SimulationObject {
       TelemetryPacket::data_packet_t &dataPacket2) = 0;
 
   virtual void GetAccelerometer(Vec3d &acc) = 0; 
-  virtual void GetRateGyroBiasCorrected(Vec3d &rateGyro) = 0;
+  virtual void GetRateGyro(Vec3d &rateGyro) = 0;
 
  protected:
 
