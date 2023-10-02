@@ -1,6 +1,6 @@
 # 1- Installing ROS
 
-If you haven't already installed ROS, follow the instructions listed here:
+If you haven't already installed ROS-Kinetic, follow the instructions listed here:
 * https://wiki.ros.org/melodic/Installation/Ubuntu
 Note: if you are using Ubuntu 20.04 LTS, [ROS-noetic](http://wiki.ros.org/noetic/Installation/Ubuntu) is official supported version
 
@@ -64,9 +64,9 @@ By echo you have to see something like:
 
 * Click on the new project which showed up in the Unity Hub menu to open it in Unity.
 
-* In the bottom pane, click on Projects->Assets->Scenes. Then, double-click on SimModeSelector.
+* In the bottom pane, click on Projects->Assets->Scenes. Then, double-click on SimModeSelector. Choose the Drone-Demo.
 
-* Hit the play button to start, then select the agri mode
+* Hit the play button to start.
 
 # 2- Run the ROS simulator
 * Start ROS by running `roscore`
@@ -79,12 +79,13 @@ By echo you have to see something like:
 
 * Start the RAPPIDS planner and controller node `rosrun hiperlab_rostools quad_rappids_planner_controller 1`. Again, change `1` to your vehicle IDs if you are running with a different vehicle.   
 
-* Start the keyboard node by running `rosrun hiperlab_hardware keyboard_control`. Then follow the instruction given by the RAPPIDS node and hit the ‘s’ button on the keyboard multiple times to start the flight controller.
+* Following the instruction given by the RAPPIDS node and hit 's' button on the keyboard multiple times to start the flight controller.
 
 * To end the simulation, kill the ROS nodes (in the same order you ran them) first before you stop the Unity simulated world.
 
 # 3- Record bag files
 * Copy and paste `rosbag_record_airsim.sh` to places you want to record data at.
 * Run 'rosbag_record_airsim.sh' to record ROS bag files.
+
 
 
