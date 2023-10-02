@@ -88,3 +88,4 @@ By echo you have to see something like:
 * Run 'rosbag_record_airsim.sh' to record ROS bag files.
 
 
+

@@ -465,7 +465,7 @@ int main(void) {
       TelemetryPacket::DecodeTelemetryPacket(dataPacketRaw2, dataPacket);
     }
 
-    MocapStateEstimator::MocapEstimatedState estState;
+    EstimatedState estState;
     estState = est->GetPrediction(timeDelayOffboardControlLoopEstimate);
 
     if (timerOffboardMainLoop.GetSeconds<double>() > periodOffboardMainLoop) {
@@ -697,7 +697,7 @@ int main(void) {
       Rotationf att;
       Vec3f angVel;
       if (controllerType != CTRL_ONBOARD_UWB) {
-        MocapStateEstimator::MocapEstimatedState estState = est->GetPrediction(
+        EstimatedState estState = est->GetPrediction(
             0);
         pos = estState.pos;
         vel = estState.vel;

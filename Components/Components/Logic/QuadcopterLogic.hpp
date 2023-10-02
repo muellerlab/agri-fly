@@ -69,11 +69,11 @@ class QuadcopterLogic {
   }
 
   inline Vec3f GetAccelerometer(void) const {
-    return _imuAccelerometer.rawMeas;
+    return _imuAccelerometer.lowPass.GetValue();
   }
 
-  inline Vec3f GetRateGyroBiasCorrected(void) const {
-    return (_imuRateGyro.rawMeas - _gyroCalibrationBias);
+  inline Vec3f GetRateGyro(void) const {
+    return _imuRateGyro.lowPass.GetValue();
   }
 
   inline float GetIMUTemperature() const {

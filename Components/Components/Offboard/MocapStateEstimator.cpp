@@ -58,14 +58,14 @@ void MocapStateEstimator::ResetVariance() {
   _varianceAttitude(0, 1) = _varianceAttitude(1, 0) = 0.0;
 }
 
-MocapStateEstimator::MocapEstimatedState MocapStateEstimator::GetPrediction(
+EstimatedState MocapStateEstimator::GetPrediction(
     double const dt) const {
 
   //we want to predict for "dt" and whatever the estimate is behind the wall clock.
   double tStart;
   double tEnd = dt + _timer.GetSeconds<double>();
 
-  MocapEstimatedState est;
+  EstimatedState est;
 
   {
     std::lock_guard<std::mutex> guard(_mutexEstimate);
