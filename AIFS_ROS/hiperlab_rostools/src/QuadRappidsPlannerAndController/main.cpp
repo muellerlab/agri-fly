@@ -2,6 +2,7 @@
 #include <thread>
 
 #include "ros/ros.h"
+#include "rosgraph_msgs/Clock.h"
 #include "ExampleVehicleStateMachine.hpp"
 
 using namespace Offboard;
@@ -12,12 +13,24 @@ double const mainLoopFrequency = 50;    //Hz
 double const systemLatencyTime = 30e-3;  // latency in measurements & commands[s]
 
 bool useJoystick = true;
-
 bool volatile jsButtonStart = false;
 bool volatile jsButtonStop = false;
+
+ManualTimer timer;
+ros::Time lastRosTime;
+ros::Time currentRosTime;
+
 void callback_joystick(const hiperlab_rostools::joystick_values &msg) {
   jsButtonStart = msg.buttonStart > 0;
   jsButtonStop = msg.buttonRed > 0;
+}
+
+void callback_ros_time(const rosgraph_msgs::Clock &msg) {
+  currentRosTime = ros::Time::now();
+  // Convert the duration to microseconds
+  double duration_in_microseconds = (currentRosTime-lastRosTime).toSec() * 1e6;
+  timer.AdvanceMicroSeconds(duration_in_microseconds); // Advance the timer by the ROS duration.
+  lastRosTime = currentRosTime;
 }
 
 void rosThreadFn() {
@@ -50,8 +63,9 @@ int main(int argc, char **argv) {
   ros::NodeHandle n;
   ros::Subscriber subJoystick = n.subscribe("joystick_values", 1,
                                             callback_joystick);
+  ros::Subscriber subRosTimer = n.subscribe("clock", 1, callback_ros_time);
+                                          
   //Set everything up.
-  HardwareTimer timer;
 
   ExampleVehicleStateMachine veh;
   veh.Initialize(vehicleId, "rates vehicle", n, &timer, systemLatencyTime);
@@ -75,6 +89,9 @@ int main(int argc, char **argv) {
 //  thread rosThread(rosThreadFn);
   ros::AsyncSpinner spinner(4);  // Use 4 threads
   spinner.start();
+  timer.ResetMicroseconds(0);
+  lastRosTime = ros::Time::now();
+  currentRosTime = ros::Time::now();
 
   bool firstPanic = true;
 
