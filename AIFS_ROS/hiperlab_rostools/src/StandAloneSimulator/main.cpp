@@ -27,6 +27,7 @@
 #include "hiperlab_rostools/simulator_truth.h"
 #include "hiperlab_rostools/radio_command.h"
 #include "hiperlab_rostools/telemetry.h"
+#include <rosgraph_msgs/Clock.h>
 
 // AirSim includes
 #include <iostream> // for image saving
@@ -56,6 +57,8 @@ class SimVehicle {
   std::shared_ptr<ros::Publisher> pubOdometry;
   std::shared_ptr<ros::Publisher> pubGPS;
   std::shared_ptr<ros::Publisher> pubIMU;
+  std::shared_ptr<ros::Publisher> pubSimTime;
+  rosgraph_msgs::Clock simTimeMsg;
 
   int id;
   Vec3d _initPos;
@@ -145,6 +148,10 @@ int main(int argc, char **argv) {
 
   v->pubImagePoll.reset(
       new ros::Publisher(n.advertise<std_msgs::Header>("imagePoll", 1)));
+
+  //Publish time info to overwrite the system clock
+  v->pubSimTime.reset(
+      new ros::Publisher(n.advertise<rosgraph_msgs::Clock>("/clock", 1)));
 
   cout << "Publisher setup.\n";
   vehicles.push_back(v);
@@ -244,6 +251,12 @@ int main(int argc, char **argv) {
   while (ros::ok()) {
     ros::spinOnce();
     //want to fly a sinusoid:
+
+    ros::Time currentTime(t.GetSeconds_f());  //Ros time takes floating point seconds
+    v->simTimeMsg.clock = currentTime;
+    v->pubSimTime->publish(v->simTimeMsg);  //Publish current time to roscore so simulated time is advanced
+
+
     for (auto v : vehicles) {
       v->vehicle->Run();
     }
