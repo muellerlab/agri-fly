@@ -1,14 +1,32 @@
 # Flight Simulator in Agricultural Environment
-![agri_fly_pic](https://user-images.githubusercontent.com/39609430/152670561-484cbd9d-8def-4851-97e0-e5c4ddbf6a1d.png)
 
-
+# Overview
+<img src="https://github.com/muellerlab/agri-fly/assets/110063695/0e4c4d21-3ab1-4e97-83b2-abe9b97528db" width="800">
 
 This project is a simulator for autonomous flight in agricultural environment. 
-It aims to help test different strategies of autonomous flights in simulated environments containing high-fidelity argricultral features. 
+It aims to help test different strategies of autonomous flights in simulated environments containing high-fidelity argricultral features.
 
-We created this project with Ubuntu environments. We recommend you to run it on Ubuntu 18.04 as the current AirSim version is not fully tested on future ubuntu distributions.
+## Simulator Structure
+
+![image](https://user-images.githubusercontent.com/39609430/147999038-ac5ea2ee-9f68-4a50-ad56-389cf1e7840f.png)
+
+1. The flight simulator code, including physics and example estimator and controller are based on work of [HiPeRLab](https://hiperlab.berkeley.edu/). The depth-camera based [RAPPIDS controller](https://hiperlab.berkeley.edu/wp-content/uploads/2020/11/2020_RectangularPyramid.pdf) is used in the onboard path planning example. 
+
+2. The high-fidelity argricultral models used in the project comes from [Helios](https://baileylab.ucdavis.edu/software/helios/) developed by Bailey Lab of UC Davis.
+
+3. Rendering of the argricultral world is implemented with [Unity](https://unity.com/). The tool is not open source and not free to use, but Unity provides personal/educator license that can be easily obtained without charge. 
+
+4. The visualization and sensor fabrication is built upon the [AirSim](https://microsoft.github.io/AirSim/) and its pilot Unity-based simulation demo.
+
+# Indoor Pod Inspection Simulation
+We provide tools for the user to quickly build an agricultural scene and simulate an autonomous flight within the custom build environments. We include a variety of pre-generated trees using HELIOS, as well as an orchard generator that allows the trees to quickly populate an environment. One example use case is an autonomous indoor flight inspection simulation built using the tools contained in Agri-fly.
+
+<img src="https://github.com/muellerlab/agri-fly/assets/110063695/ccc82be4-a0eb-479b-bace-dd2ea72228a7" width="800">
+
 
 # Installation Guide
+
+We created this project with Ubuntu environments. We recommend you to run it on Ubuntu 18.04 or 20.04 as the current AirSim version is not fully tested on future ubuntu distributions.
 
 ## 1. Install Prerequisite Libraries
 The project is based on following common libraries. Make sure you have them installed on your computer. 
@@ -78,23 +96,11 @@ Notice that the single-thread simulation is extremely slow and we recommend to u
 
 * Then run the compiled Rappids_Simulator executive. You should see the vehicle taking off and trying to autonomously fly through the almond orchard.
 
-
 # Quick Startup Guide For ROS Simulation
 See readme.md inside the AIFS_ROS folder.
 
-
-# Structure Overview
-![image](https://user-images.githubusercontent.com/39609430/147999038-ac5ea2ee-9f68-4a50-ad56-389cf1e7840f.png)
-
-
-1. The flight simulator code, including physics and example estimator and controller are based on work of [HiPeRLab](https://hiperlab.berkeley.edu/). The depth-camera based [RAPPIDS controller](https://hiperlab.berkeley.edu/wp-content/uploads/2020/11/2020_RectangularPyramid.pdf) is used in the onboard path planning example. 
-
-2. The high-fidelity argricultral models used in the project comes from [Helios](https://baileylab.ucdavis.edu/software/helios/) developed by Bailey Lab of UC Davis.
-
-3. Rendering of the argricultral world is implemented with [Unity](https://unity.com/). The tool is not open source and not free to use, but Unity provides personal/educator license that can be easily obtained without charge. 
-
-4. The visualization and sensor fabrication is built upon the [AirSim](https://microsoft.github.io/AirSim/) and its pilot Unity-based simulation demo. 
-
+# Contact
+For any questions, please contact us at teaya.yang@berkeley.edu
 
 # Acknowledgement
 The project is supported by USDA-NIFA/NSF AI Institute for Next Generation Food Systems [AIFS](https://aifs.ucdavis.edu/)
@@ -103,4 +109,5 @@ The project is supported by USDA-NIFA/NSF AI Institute for Next Generation Food 
 The high fidelity tree models in the simulator is generated with the [Helios](https://baileylab.ucdavis.edu/software/helios/) developed by Bailey lab of UC Davis.
 ![Helios_logo_small](https://user-images.githubusercontent.com/39609430/153678415-4192ebe7-d9f6-4d66-9a28-ed2dbb2a6443.png)
 
-
+# Funding
+This work is supported by AFRI Competitive Grant no. 2020-67021-32855/project accession no. 1024262 from the USDA National Institute of Food and Agriculture.
