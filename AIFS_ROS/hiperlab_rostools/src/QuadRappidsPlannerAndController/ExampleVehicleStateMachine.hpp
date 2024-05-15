@@ -259,6 +259,7 @@ class ExampleVehicleStateMachine {
   Vec3d _trajOffset;  //Offset position of the the traj from camera frame to world frame
   Vec3d _goalWorld;
   Vec3d _lastGoal;
+  std::string trajectory_file;
   std::fstream _trajFile;
   std::vector<RectangularPyramidPlanner::TrajectoryTest> _depthPlannedTraj;
   std::shared_ptr<RapidQuadrocopterTrajectoryGenerator::RapidTrajectoryGenerator> _plannedTraj;

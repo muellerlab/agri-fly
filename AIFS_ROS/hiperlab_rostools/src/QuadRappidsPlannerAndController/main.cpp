@@ -29,7 +29,13 @@ void callback_ros_time(const rosgraph_msgs::Clock &msg) {
   currentRosTime = ros::Time::now();
   // Convert the duration to microseconds
   double duration_in_microseconds = (currentRosTime-lastRosTime).toSec() * 1e6;
-  timer.AdvanceMicroSeconds(duration_in_microseconds); // Advance the timer by the ROS duration.
+  if (duration_in_microseconds < 10000.0f){
+    timer.AdvanceMicroSeconds(duration_in_microseconds); // Advance the timer by the ROS duration.
+  }else{
+    printf("Abnormal duration: %f\n",duration_in_microseconds);
+
+  }
+
   lastRosTime = currentRosTime;
 }
 
@@ -64,13 +70,15 @@ int main(int argc, char **argv) {
   ros::Subscriber subJoystick = n.subscribe("joystick_values", 1,
                                             callback_joystick);
   ros::Subscriber subRosTimer = n.subscribe("clock", 1, callback_ros_time);
+
+  //ros::Publisher pubNow = n.advertise<rosgraph_msgs::Clock>("time_now",1);
                                           
   //Set everything up.
 
   ExampleVehicleStateMachine veh;
   veh.Initialize(vehicleId, "rates vehicle", n, &timer, systemLatencyTime);
 
-  Vec3d desiredPosition(0.0, 0.0, 2.0);
+  Vec3d desiredPosition(0.0, 0.0, 4.0);
   double desiredYawAngle = 0.0 * M_PI / 180.0;
 
   cout << "Desired position setpoint = <" << desiredPosition.x << ","
@@ -92,6 +100,9 @@ int main(int argc, char **argv) {
   timer.ResetMicroseconds(0);
   lastRosTime = ros::Time::now();
   currentRosTime = ros::Time::now();
+
+  //rosgraph_msgs::Clock timeNowMsg;
+
 
   bool firstPanic = true;
 
@@ -130,7 +141,8 @@ int main(int argc, char **argv) {
       printf("Panic button!\n");
       veh.SetExternalPanic();
     }
-
+    //timeNowMsg.clock = ros::Time::now();
+    //pubNow.publish(timeNowMsg);
     veh.Run(jsButtonStart, jsButtonStop);
 
     if (veh.GetIsReadyToExit()) {

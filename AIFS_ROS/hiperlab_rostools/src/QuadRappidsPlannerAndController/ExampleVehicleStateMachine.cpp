@@ -160,11 +160,11 @@ void ExampleVehicleStateMachine::CallbackDepthImages(
 //    printf("largest: %d\n", largestDepth);
 //    printf("smallest: %d\n", smallestDepth);
 //
-//    char buffer[256];
-//    sprintf(buffer, "%04d", _depthImageCount);
-//    std::string str(buffer);
-//    std::string file_path = "/home/clark/Documents/AirSim/img" + str + ".bmp";
-//    cv::imwrite(file_path, depthImage);
+  //  char buffer[256];
+  //  sprintf(buffer, "%04d", _depthImageCount);
+  //  std::string str(buffer);
+  //  std::string file_path = "/home/teaya/Documents/AirSim/img" + str + ".bmp";
+  //  cv::imwrite(file_path, depthImage);
 //  }
   _depthImageWidth = depthImage.cols;
   _depthImageHeight = depthImage.rows;
@@ -356,6 +356,9 @@ void ExampleVehicleStateMachine::Initialize(int id, std::string name,
   ss << "[" << name << " (" << _id << ")]: ";
   _name = ss.str();
 
+//Set the trajectory file path:
+  n.getParam("traj_file", trajectory_file);
+
 //set up networking stuff:
   _subMocap.reset(
       new ros::Subscriber(
@@ -446,7 +449,7 @@ void ExampleVehicleStateMachine::Initialize(int id, std::string name,
 
   //Reading first goal
   //TODO This is not general!!!
-  _trajFile.open("/home/teaya/Documents/Repos/agri-fly/AIFS_ROS/hiperlab_rostools/src/QuadRappidsPlannerAndController/trajectory.txt", ios::in);
+  _trajFile.open(trajectory_file.c_str(), ios::in);
   string _trajLine;
   if(getline(_trajFile,_trajLine)){
     // first line exists

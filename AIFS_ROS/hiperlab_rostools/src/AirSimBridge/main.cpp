@@ -65,7 +65,7 @@ class ImagePollAgent {
   ofstream imageFetchlog;
   void initiateAirSimClient() {
     using namespace msr::airlib;
-    client.reset(new MultirotorRpcLibClient("", 41451, 1));
+    client.reset(new MultirotorRpcLibClient("", 41451, 100));
     client->confirmConnection();  // Need to have env open and running (press play)
     imageFetchlog.open("depthImageFetcher.csv");
   }
@@ -162,12 +162,12 @@ class ImagePollAgent {
       imageReceived.stamp = ros::Time::now();  // time
       pubImageReceivedFlag->publish(imageReceived);
       ros::Duration convertImageTime = timePublish - timeStartEncode;
-      if (imageCount < 1000) {
+      if (imageCount < 10000) {
         imageFetchlog << imageCount - 2 << ",";
         imageFetchlog << fetchImageTime.toSec() << ",";
         imageFetchlog << convertImageTime.toSec() << ",";
         imageFetchlog << "\n";
-      } else if (imageCount == 1000) {
+      } else if (imageCount == 10000) {
         imageFetchlog.close();
       }
     }

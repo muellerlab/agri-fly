@@ -37,6 +37,7 @@
 
 // Code for image publisher
 #include "std_msgs/Bool.h"
+#include "std_msgs/Int32.h"
 
 #include <image_transport/image_transport.h>
 #include <opencv2/highgui/highgui.hpp>
@@ -79,7 +80,13 @@ class SimVehicle {
   std::shared_ptr<ros::Publisher> pubSimTime;
   std::shared_ptr<ros::Publisher> pubGPS;
   std::shared_ptr<ros::Publisher> pubIMU;
+  std::shared_ptr<ros::Publisher> pubCycle;
+  std::shared_ptr<ros::Publisher> pubRosTime;
+
   rosgraph_msgs::Clock simTimeMsg;
+  rosgraph_msgs::Clock rosTimeMsg;
+  std_msgs::Int32 cycleMsg;
+  
 
   bool imageStarted;
   bool imageLock;
@@ -237,6 +244,13 @@ int main(int argc, char **argv) {
   v->pubSimTime.reset(
       new ros::Publisher(n.advertise<rosgraph_msgs::Clock>("/clock", 1)));
 
+  //Publish cycle number
+  v->pubCycle.reset(
+      new ros::Publisher(n.advertise<std_msgs::Int32>("cycle_number", 1)));
+    //Publish ROS time
+  v->pubRosTime.reset(
+      new ros::Publisher(n.advertise<rosgraph_msgs::Clock>("ros_time", 1)));
+
 // We set the image output to the air_sim_bridge so we following code are commented out.
 //    image_transport::ImageTransport it(n);
 //    v->pubDepthImage.reset(
@@ -341,6 +355,7 @@ int main(int argc, char **argv) {
   ros::Rate loop_rate(frequencySimulation);
 
   Timer cmdRadioTimer(&simTimer);
+  int cycleNum = 0;
 
   //where we want the quadcopter to fly to:
   while (ros::ok()) {
@@ -350,6 +365,11 @@ int main(int argc, char **argv) {
       ros::Time currentTime(t.GetSeconds_f());  //Ros time takes floating point seconds
       v->simTimeMsg.clock = currentTime;
       v->pubSimTime->publish(v->simTimeMsg);  //Publish current time to roscore so simulated time is advanced
+      v->rosTimeMsg.clock = ros::Time::now();
+      v->pubRosTime->publish(v->rosTimeMsg);
+      v->cycleMsg.data = cycleNum;
+      v->pubCycle->publish(v->cycleMsg);
+      cycleNum++;
 
       for (auto v : vehicles) {
         v->vehicle->Run();
@@ -589,7 +609,7 @@ int main(int argc, char **argv) {
 
       }
     }
-    loop_rate.sleep();
+    //loop_rate.sleep();
   }
   cout << "Done.\n";
 }
