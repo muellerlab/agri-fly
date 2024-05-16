@@ -1,8 +1,8 @@
 # 1- Installing ROS
 
-If you haven't already installed ROS-Kinetic, follow the instructions listed here:
-* https://wiki.ros.org/melodic/Installation/Ubuntu
-Note: if you are using Ubuntu 20.04 LTS, [ROS-noetic](http://wiki.ros.org/noetic/Installation/Ubuntu) is official supported version
+If you haven't already installed ROS instructions listed here:
+
+For Ubuntu 20.04 LTS, [ROS-noetic](http://wiki.ros.org/noetic/Installation/Ubuntu) is official supported version
 
 # 2-Setting up your workspace
 We suggest use python catkin tools to build ROS projects. Make sure you have the python catkin tools installed:
@@ -39,7 +39,7 @@ Then we need to link the source files for common & components:
 In AIFS_ROS/hiperlab_rostools.CMakeLists.txt,
 Set the AIRSIM_ROOT to the folder you store airsim on your computer. 
 i.e.:
-* set(AIRSIM_ROOT {Path to your project folder}/AIFS_AirSim)  
+* `set(AIRSIM_ROOT {Path to your project folder}/AIFS_AirSim)`
 
 
 # 5-Build the workspace
@@ -64,13 +64,46 @@ By echo you have to see something like:
 
 * Click on the new project which showed up in the Unity Hub menu to open it in Unity.
 
-* In the bottom pane, click on Projects->Assets->Scenes. Then, double-click on SimModeSelector. Choose the Drone-Demo.
+* In the bottom pane, click on Projects->Assets->Scenes. Then, double-click on SimModeSelector.
 
 * Hit the play button to start.
 
-# 2- Run the ROS simulator
-* Start ROS by running `roscore`
+* Select the scene you would like the drone to fly in. At this point you should see the drone droping and landing on the ground.
 
+# 2- Run the ROS simulator
+* Locate the launch file located at hiperlab_rostools->launch->agrifly.launch.
+ 
+* Create a `trajectory.txt` file that contains your desired trajectory setpoints with the following format:
+  ```
+  x1,y1,z1
+  x2,y2,z2
+  x3,y3,z3
+  ...
+  ```
+  Where X points forward, Y left, and Z up. For example, the file content should look like:
+  ```
+  0.0,0.0,4.0
+  10.0,0.0,4.0
+  15.0,0.0,4.0
+  ...
+  ```
+  for the drone to fly a straight line trajectory at 4 meters.
+  
+ * Point to the trajctory file location in `agrifly.launch` by replacing `"/default/path/to/trajectory.txt"`.
+ 
+ * Start the simulator by running `roslaunch hiperlab_rostools agrifly.launch`. You will be prompted to hit 's' button on the keyboard twice to start the flight controller. You should now see the drone flying through the scene following the defined trajectory.
+ 
+ * To end the simulation, kill the ROS notes from the terminal before you stop the Unity simulation.
+
+# 3- Record bag files
+* Copy and paste `rosbag_record_airsim.sh` to places you want to record data at.
+* Run 'rosbag_record_airsim.sh' to record ROS bag files.
+
+# Running the simulation with seperate ROS nodes
+Instead of using the launch file, you may also start each node seperately.
+
+* Start ROS by running `roscore`
+  
 * Start the AirSim Bridge node by running `rosrun hiperlab_rostools air_sim_bridge`. The AirSim Bridge receives synthesized camera images from Unity and convert it to ROS compatible messages. Add 1 or 2 arguments of integer 0-10 (camera types specified in ImageCaptureBase.hpp) to specify which camera type(s) to be sent to ROS from Unity. Ex: `rosrun hiperlab_rostools air_sim_bridge 3 0` would return DepthVis (3) and Scene (0) to ros publishers depthImage and rgbImage respectively. 
 
 * If your hardware is powerful enough/you experiment is not sensative to delay in synthesized graph generation, we suggest you use real-time ros simulator which is synced with a wall clock. Start the simulator node by running `rosrun hiperlab_rostools simulator 1` change `1` to other vehicle IDs if you are not running with the default vehicle.
@@ -82,10 +115,5 @@ By echo you have to see something like:
 * Following the instruction given by the RAPPIDS node and hit 's' button on the keyboard multiple times to start the flight controller.
 
 * To end the simulation, kill the ROS nodes (in the same order you ran them) first before you stop the Unity simulated world.
-
-# 3- Record bag files
-* Copy and paste `rosbag_record_airsim.sh` to places you want to record data at.
-* Run 'rosbag_record_airsim.sh' to record ROS bag files.
-
 
 
