@@ -1,12 +1,13 @@
 # Flight Simulator in Agricultural Environment
-![agri_fly_pic](https://user-images.githubusercontent.com/39609430/152670561-484cbd9d-8def-4851-97e0-e5c4ddbf6a1d.png)
+![image](https://github.com/muellerlab/agri-fly/assets/110063695/5fecdac9-0d25-4754-855e-459e86eb46f1)
+
 
 
 
 This project is a simulator for autonomous flight in agricultural environment. 
 It aims to help test different strategies of autonomous flights in simulated environments containing high-fidelity argricultral features. 
 
-We created this project with Ubuntu environments. We recommend you to run it on Ubuntu 18.04 as the current AirSim version is not fully tested on future ubuntu distributions.
+We created this project with Ubuntu environments. We recommend you to run it on Ubuntu 20.04 as the current AirSim version is not fully tested on future ubuntu distributions.
 
 # Installation Guide
 
@@ -84,7 +85,8 @@ See readme.md inside the AIFS_ROS folder.
 
 
 # Structure Overview
-![image](https://user-images.githubusercontent.com/39609430/147999038-ac5ea2ee-9f68-4a50-ad56-389cf1e7840f.png)
+![image](https://github.com/muellerlab/agri-fly/assets/110063695/95599e4f-9acf-4730-a310-196810069287)
+
 
 
 1. The flight simulator code, including physics and example estimator and controller are based on work of [HiPeRLab](https://hiperlab.berkeley.edu/). The depth-camera based [RAPPIDS controller](https://hiperlab.berkeley.edu/wp-content/uploads/2020/11/2020_RectangularPyramid.pdf) is used in the onboard path planning example. 
