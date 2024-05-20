@@ -1,0 +1,15 @@
+<launch>
+    <!-- Define argument for trajectory file path -->
+    <arg name="trajectory_file_path" default="/default/path/to/trajectory.txt"/>
+
+    <!-- Set ROS parameters -->
+    <param name="use_sim_time" value="true"/>
+
+    <!-- Launch nodes -->
+    <node name="air_sim_bridge" pkg="hiperlab_rostools" type="air_sim_bridge" output="screen"/>
+    <node name="sync_simulator" pkg="hiperlab_rostools" type="sync_simulator" args="1" output="screen"/>
+    <node name="quad_rappids_planner_controller" pkg="hiperlab_rostools" type="quad_rappids_planner_controller" args="1" output="screen">
+        <param name="traj_file" value="$(arg trajectory_file_path)"/>
+    </node>
+    <node name="keyboard_control" pkg="hiperlab_hardware" type="keyboard_control" output="screen"/>
+</launch>

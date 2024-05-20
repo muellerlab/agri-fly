@@ -10,17 +10,18 @@ using namespace std;
 
 //Definitions:
 double const mainLoopFrequency = 50;    //Hz
-double const systemLatencyTime = 30e-3;  // latency in measurements & commands[s]
+double const systemLatencyTime = 30e-3; // latency in measurements & commands[s]
 
 bool useJoystick = true;
-bool volatile jsButtonStart = false;
-bool volatile jsButtonStop = false;
 
 ManualTimer timer;
 ros::Time lastRosTime;
 ros::Time currentRosTime;
 
-void callback_joystick(const hiperlab_rostools::joystick_values &msg) {
+bool volatile jsButtonStart = false;
+bool volatile jsButtonStop = false;
+void callback_joystick(const hiperlab_rostools::joystick_values &msg)
+{
   jsButtonStart = msg.buttonStart > 0;
   jsButtonStop = msg.buttonRed > 0;
 }
@@ -29,38 +30,38 @@ void callback_ros_time(const rosgraph_msgs::Clock &msg) {
   currentRosTime = ros::Time::now();
   // Convert the duration to microseconds
   double duration_in_microseconds = (currentRosTime-lastRosTime).toSec() * 1e6;
-  if (duration_in_microseconds < 10000.0f){
-    timer.AdvanceMicroSeconds(duration_in_microseconds); // Advance the timer by the ROS duration.
-  }else{
-    printf("Abnormal duration: %f\n",duration_in_microseconds);
-
-  }
-
+  timer.AdvanceMicroSeconds((uint64_t)duration_in_microseconds); // Advance the timer by the ROS duration.
   lastRosTime = currentRosTime;
 }
 
-void rosThreadFn() {
+void rosThreadFn()
+{
   // We run this function as a separate thread, allows us to continuously service any subscribers.
   ros::spin();
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
 
-  if (argc < 2) {
+  if (argc < 2)
+  {
     printf("ERROR: Must specify the vehicle ID\n");
     return -1;
   }
 
   int const vehicleId = atol(argv[1]);
-  if (vehicleId <= 0 || vehicleId > 255) {
+  if (vehicleId <= 0 || vehicleId > 255)
+  {
     printf("ERROR: invalid vehicle ID\n");
     return -1;
   }
 
-  ros::init(argc, argv, "quad_rappids_rates_control" + std::to_string(vehicleId));
+  ros::init(argc, argv, "quad_gps_rates_control" + std::to_string(vehicleId));
 
-  for (int i = 2; i < argc; i++) {
-    if (!strcmp(argv[i], "--no-js")) {
+  for (int i = 2; i < argc; i++)
+  {
+    if (!strcmp(argv[i], "--no-js"))
+    {
       printf("Disabling joystick use.\n");
       useJoystick = false;
     }
@@ -70,16 +71,13 @@ int main(int argc, char **argv) {
   ros::Subscriber subJoystick = n.subscribe("joystick_values", 1,
                                             callback_joystick);
   ros::Subscriber subRosTimer = n.subscribe("clock", 1, callback_ros_time);
-
-  //ros::Publisher pubNow = n.advertise<rosgraph_msgs::Clock>("time_now",1);
-                                          
   //Set everything up.
 
   ExampleVehicleStateMachine veh;
   veh.Initialize(vehicleId, "rates vehicle", n, &timer, systemLatencyTime);
 
-  Vec3d desiredPosition(0.0, 0.0, 4.0);
-  double desiredYawAngle = 0.0 * M_PI / 180.0;
+  Vec3d desiredPosition(0.0, 0.0, 1.0);
+  double desiredYawAngle = 90.0 * M_PI / 180.0;
 
   cout << "Desired position setpoint = <" << desiredPosition.x << ","
        << desiredPosition.y << "," << desiredPosition.z << ">\n";
@@ -90,41 +88,41 @@ int main(int argc, char **argv) {
   ros::Rate loop_rate(mainLoopFrequency);
 
   Timer emergencyTimer(&timer);
-  double const EMERGENCY_BUTTON_PERIOD = 0.5;  //if you hold the land button down, it triggers an emergency.
+  double const EMERGENCY_BUTTON_PERIOD = 0.5; //if you hold the land button down, it triggers an emergency.
 
   cout << "Starting main controller.\n";
 
-//  thread rosThread(rosThreadFn);
-  ros::AsyncSpinner spinner(4);  // Use 4 threads
-  spinner.start();
-  timer.ResetMicroseconds(0);
+  thread rosThread(rosThreadFn);
+  
+  cout << "ROS timer reset.\n";
   lastRosTime = ros::Time::now();
   currentRosTime = ros::Time::now();
-
-  //rosgraph_msgs::Clock timeNowMsg;
-
-
+  timer.ResetMicroseconds(0);
   bool firstPanic = true;
 
   Vec3d initPosition;
   bool shouldQuit = false;
 
   cout << "Waiting for estimator init...\n";
-  while (ros::ok()) {
+  while (ros::ok())
+  {
     loop_rate.sleep();
-    if (veh.GetIsGPSEstInitialized() &&
-        veh.GetIsOdometryEstInitialized()) {
+    if (veh.GetIsEstInitialized())
+    {
       break;
     }
   }
   cout << "Est initialized.\n";
 
   cout << "Waiting for joystick start button...\n";
-  while (ros::ok()) {
+  while (ros::ok())
+  {
     loop_rate.sleep();
-    if (jsButtonStart) {
+    if (jsButtonStart)
+    {
       //force to release button:
-      while (jsButtonStart) {
+      while (jsButtonStart)
+      {
         loop_rate.sleep();
       }
       break;
@@ -132,27 +130,24 @@ int main(int argc, char **argv) {
   }
   cout << "Continuing. Hit start again to take off.\n";
 
-  while (ros::ok() && !shouldQuit) {
-    if (!jsButtonStop) {
+  while (ros::ok() && !shouldQuit)
+  {
+    if (!jsButtonStop)
+    {
       emergencyTimer.Reset();
     }
 
-    if (emergencyTimer.GetSeconds<double>() > EMERGENCY_BUTTON_PERIOD) {
-      printf("Panic button!\n");
-      veh.SetExternalPanic();
-    }
-    //timeNowMsg.clock = ros::Time::now();
-    //pubNow.publish(timeNowMsg);
     veh.Run(jsButtonStart, jsButtonStop);
 
-    if (veh.GetIsReadyToExit()) {
+    if (veh.GetIsReadyToExit())
+    {
       break;
     }
 
     loop_rate.sleep();
   }
-  spinner.stop();
+
   ros::shutdown();
-//  rosThread.join();
+  rosThread.join();
   return 0;
 }

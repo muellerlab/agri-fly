@@ -5,13 +5,15 @@
 #include "Common/DataTypes/RadioTypes.hpp"
 #include "Common/DataTypes/TelemetryPacket.hpp"
 #include "Common/Time/HardwareTimer.hpp"
-#include "Components/Offboard/MocapStateEstimator.hpp"
+#include "Components/Offboard/GPSStateEstimator.hpp"
+#include "Components/Offboard/GPSIMUStateEstimator.hpp"
 #include "Components/Offboard/QuadcopterController.hpp"
 #include "Components/Offboard/SafetyNet.hpp"
 #include "Components/Offboard/EstimatedState.hpp"
 #include "Components/Logic/QuadcopterConstants.hpp"
 
-#include "hiperlab_rostools/mocap_output.h"
+#include "hiperlab_rostools/gps_output.h"
+#include "hiperlab_rostools/imu_output.h"
 #include "hiperlab_rostools/estimator_output.h"
 #include "hiperlab_rostools/radio_command.h"
 #include "hiperlab_rostools/joystick_values.h"
@@ -44,7 +46,8 @@ class ExampleVehicleStateMachine {
   void Initialize(int id, std::string name, ros::NodeHandle &n,
                   BaseTimer* timer, double systemLatencyTime);
 
-  void CallbackEstimator(const hiperlab_rostools::mocap_output& msg);
+  void CallbackIMU(const hiperlab_rostools::imu_output& msg);
+  void CallbackGPS(const hiperlab_rostools::gps_output& msg);
   void CallbackTelemetry(const hiperlab_rostools::telemetry& msg);
 
   void Run(bool shouldStart, bool shouldStop);
@@ -71,13 +74,13 @@ class ExampleVehicleStateMachine {
     return _lastTelWarnings & TelemetryPacket::WARN_LOW_BATT;
   }
   int _id;
-  std::shared_ptr<MocapStateEstimator> _est;
+  std::shared_ptr<GPSIMUStateEstimator> _est;
   double _systemLatencyTime;  //[s] as used by estimator
   std::shared_ptr<QuadcopterController> _ctrl;
   std::shared_ptr<SafetyNet> _safetyNet;
   std::string _name;
 
-  std::shared_ptr<ros::Subscriber> _subMocap, _subTelemetry;
+  std::shared_ptr<ros::Subscriber> _subGPS, _subIMU, _subTelemetry;
   std::shared_ptr<ros::Publisher> _pubEstimate, _pubCmd;
 
 //state info:

@@ -70,7 +70,7 @@ class SafetyNet {
     }
   }
 
-  void UpdateWithEstimator(MocapStateEstimator::MocapEstimatedState const est,
+  void UpdateWithEstimator(EstimatedState const est,
                            double const timeSinceLastGoodMeas) {
     if (timeSinceLastGoodMeas > _vehicleNotSeenTimeout) {
       _safetyState.vehicleNotSeen = true;
@@ -137,7 +137,5 @@ class SafetyNet {
   Vec3d _minCorner, _maxCorner;  //The limits of the safe flight space
   double _minNormalHeight;  //we're only allowed below this height while pointing upwards
   double _vehicleNotSeenTimeout;  //how long the vehicle can be invisible before an issue
-
 };
-
 }

@@ -115,7 +115,9 @@ include_directories(
 add_message_files(
   FILES
 	estimator_output.msg
-	mocap_output.msg  
+  gps_output.msg
+  imu_output.msg
+	mocap_output.msg
 	simulator_truth.msg
 	radio_command.msg
 	telemetry.msg
@@ -222,6 +224,14 @@ add_executable(quad_mocap_rates_control
 target_link_libraries(quad_mocap_rates_control ${catkin_LIBRARIES})
 add_dependencies(quad_mocap_rates_control ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+
+add_executable(quad_gps_rates_control 
+	src/QuadGPSRatesControl/main.cpp
+	src/QuadGPSRatesControl/ExampleVehicleStateMachine.cpp
+)
+target_link_libraries(quad_gps_rates_control ${catkin_LIBRARIES})
+add_dependencies(quad_gps_rates_control ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 add_executable(simulator src/Simulator/main.cpp)
 target_link_libraries(simulator ${catkin_LIBRARIES} ${OpenCV_LIBS} ${Boost_LIBRARIES} AirLib MavLinkCom)
 add_dependencies(simulator ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -239,6 +249,11 @@ add_dependencies(quad_rappids_planner_controller ${${PROJECT_NAME}_EXPORTED_TARG
 add_executable(sync_simulator src/SyncSimulator/main.cpp)
 target_link_libraries(sync_simulator ${catkin_LIBRARIES} ${OpenCV_LIBS} ${Boost_LIBRARIES} AirLib MavLinkCom)
 add_dependencies(sync_simulator ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(standalone_simulator src/StandAloneSimulator/main.cpp)
+target_link_libraries(standalone_simulator ${catkin_LIBRARIES} ${OpenCV_LIBS} ${Boost_LIBRARIES} AirLib MavLinkCom)
+add_dependencies(standalone_simulator ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 
 add_executable(vehicle_monitor 
     src/VehicleMonitor/main.cpp

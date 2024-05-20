@@ -8,6 +8,7 @@ ExampleVehicleStateMachine::ExampleVehicleStateMachine() {
   _id = 0;
 
   _flightStage = StageWaitForStart;
+  _estType = GPSEstimator; // Default use odometry estimator
   _lastFlightStage = StageComplete;
   _systemLatencyTime = 0;
 
@@ -43,24 +44,44 @@ ExampleVehicleStateMachine::ExampleVehicleStateMachine() {
   _minCollisionDist = 0.5;
   _plannedTrajDuration = 0;
   _lookAheadTime = 0.02;
-  _goalWorld = Vec3d(100.0, 0.0, 2.5);
+  _goalWorld = Vec3d(20.0, 0.0, 2.5);
+  _lastGoal = _goalWorld;
   _depthImageCount = 0;
   _rgbImageCount = 0;
   _firstTrajReady = false;
 }
 
-void ExampleVehicleStateMachine::CallbackEstimator(
+void ExampleVehicleStateMachine::CallbackTelemetry(
+    const hiperlab_rostools::telemetry &msg) {
+  _lastTelWarnings = msg.warnings;
+}
+
+void ExampleVehicleStateMachine::CallbackMocapEstimator(
     const hiperlab_rostools::mocap_output &msg) {
-  if (_est->GetID() == msg.vehicleID) {
-    _est->UpdateWithMeasurement(
+  if (_mocapEst->GetID() == msg.vehicleID) {
+    _mocapEst->UpdateWithMeasurement(
         Vec3d(msg.posx, msg.posy, msg.posz),
         Rotationd(msg.attq0, msg.attq1, msg.attq2, msg.attq3));
   }
 }
 
-void ExampleVehicleStateMachine::CallbackTelemetry(
-    const hiperlab_rostools::telemetry &msg) {
-  _lastTelWarnings = msg.warnings;
+void ExampleVehicleStateMachine::CallbackIMU(
+    const hiperlab_rostools::imu_output& msg) {
+  if (_estType == GPSEstimator) {
+    if (_gpsEst->GetID() == msg.vehicleID) {
+      Vec3d accMeas(msg.accmeasx, msg.accmeasy, msg.accmeasz);
+      Vec3d gyroMeas(msg.gyromeasx, msg.gyromeasy, msg.gyromeasz);
+      _gpsEst->Predict(accMeas, gyroMeas);
+    }
+  }
+}
+
+void ExampleVehicleStateMachine::CallbackGPSEstimator(
+    const hiperlab_rostools::gps_output &msg) {
+  if (_gpsEst->GetID() == msg.vehicleID) {
+    _gpsEst->UpdateWithMeasurement(
+        Vec3d(msg.posx, msg.posy, msg.posz));
+  }
 }
 
 void ExampleVehicleStateMachine::CallbackOdometry(
@@ -84,18 +105,19 @@ void ExampleVehicleStateMachine::CallbackOdometry(
       * Rotationd(msg.pose.pose.orientation.w, msg.pose.pose.orientation.x,
                   msg.pose.pose.orientation.y, msg.pose.pose.orientation.z);  //Attitude estimation given by T265
 
-  _est->UpdateWithMeasurement(posOdometry, attOdometry);
+  _odometryEst->UpdateWithMeasurement(posOdometry, attOdometry);
 
-  //! linear velocity and angular velocity are expressed in Body frame
-  Vec3d _estVel_Body = Vec3d(msg.twist.twist.linear.x, msg.twist.twist.linear.y,
-                             msg.twist.twist.linear.z);
-  _estAngVel = Vec3d(msg.twist.twist.angular.x, msg.twist.twist.angular.y,
-                     msg.twist.twist.angular.z);
-  //! rewritten in Inertia frame
-  _estVel = worldFrameToOdometryWorldFrame * _estVel_Body;
-
+  if (_estType == OdometryEstimator){
+    //! linear velocity and angular velocity are expressed in Body frame
+    Vec3d _estVel_Body = Vec3d(msg.twist.twist.linear.x, msg.twist.twist.linear.y,
+                              msg.twist.twist.linear.z);
+    //! rewritten in Inertia frame
+    _estVel = worldFrameToOdometryWorldFrame * _estVel_Body;
+  }
 }
 
+/// @brief 
+/// @param msg 
 void ExampleVehicleStateMachine::CallbackDepthImages(
     const sensor_msgs::ImageConstPtr &msg) {
 
@@ -138,11 +160,11 @@ void ExampleVehicleStateMachine::CallbackDepthImages(
 //    printf("largest: %d\n", largestDepth);
 //    printf("smallest: %d\n", smallestDepth);
 //
-//    char buffer[256];
-//    sprintf(buffer, "%04d", _depthImageCount);
-//    std::string str(buffer);
-//    std::string file_path = "/home/clark/Documents/AirSim/img" + str + ".bmp";
-//    cv::imwrite(file_path, depthImage);
+  //  char buffer[256];
+  //  sprintf(buffer, "%04d", _depthImageCount);
+  //  std::string str(buffer);
+  //  std::string file_path = "/home/teaya/Documents/AirSim/img" + str + ".bmp";
+  //  cv::imwrite(file_path, depthImage);
 //  }
   _depthImageWidth = depthImage.cols;
   _depthImageHeight = depthImage.rows;
@@ -159,8 +181,7 @@ void ExampleVehicleStateMachine::CallbackDepthImages(
   ros::Duration decodingTime = finishDecoding - receiveImageTime;
   double offsetTime = (finishDecoding - publishTime).toSec();
   double compTime = 0.015;
-  MocapStateEstimator::MocapEstimatedState estState = _est->GetPrediction(
-      compTime);
+  EstimatedState estState = EstGetState(compTime);
 
   _estAtt = estState.att;
   _estPos = estState.pos;
@@ -320,12 +341,10 @@ void ExampleVehicleStateMachine::CallbackRGBImages(
   /*char buffer[256];
    sprintf(buffer, "%04d", _rgbImageCount);
    std::string str(buffer);
-   std::string file_path = "/home/jbirtman/Documents/AirSim/imgOther" + str
+   std::string file_path = "/home/{path_to_debug_folder}" + str
    + ".bmp";
    cv::imwrite(file_path, otherImage); */
-
   _rgbImageCount++;
-
 }
 
 void ExampleVehicleStateMachine::Initialize(int id, std::string name,
@@ -336,13 +355,25 @@ void ExampleVehicleStateMachine::Initialize(int id, std::string name,
   stringstream ss;
   ss << "[" << name << " (" << _id << ")]: ";
   _name = ss.str();
-//set up networking stuff:
 
-  // Disable mocap update for simulation cases in outdoor environment
-//  _subMocap.reset(
-//      new ros::Subscriber(
-//          n.subscribe("mocap_output" + std::to_string(_id), 1,
-//                      &ExampleVehicleStateMachine::CallbackEstimator, this)));
+//Set the trajectory file path:
+  n.getParam("traj_file", trajectory_file);
+
+//set up networking stuff:
+  _subMocap.reset(
+      new ros::Subscriber(
+          n.subscribe("mocap_output" + std::to_string(_id), 1,
+                      &ExampleVehicleStateMachine::CallbackMocapEstimator, this)));
+
+  _subGPS.reset(
+      new ros::Subscriber(
+          n.subscribe("gps_output" + std::to_string(_id), 1,
+                      &ExampleVehicleStateMachine::CallbackGPSEstimator, this)));
+
+  _subIMU.reset(
+      new ros::Subscriber(
+          n.subscribe("imu_output" + std::to_string(_id), 1,
+                      &ExampleVehicleStateMachine::CallbackIMU, this)));
 
   _subTelemetry.reset(
       new ros::Subscriber(
@@ -355,12 +386,11 @@ void ExampleVehicleStateMachine::Initialize(int id, std::string name,
                       &ExampleVehicleStateMachine::CallbackOdometry, this,
                       ros::TransportHints().tcpNoDelay())));
 
-  image_transport::ImageTransport _it(n);
+  image_transport::ImageTransport _it(n); // Depth image transporter
+  image_transport::ImageTransport _rgbIt(n); // Rgp image transporter
 
   _subDepthImages = _it.subscribe(
       "depthImage", 1, &ExampleVehicleStateMachine::CallbackDepthImages, this);  // Follow Nathan's example in generating the image subscriber
-
-  image_transport::ImageTransport _rgbIt(n);
 
   _subRGBImages = _rgbIt.subscribe(
       "rgbImage", 1, &ExampleVehicleStateMachine::CallbackRGBImages, this);
@@ -369,6 +399,7 @@ void ExampleVehicleStateMachine::Initialize(int id, std::string name,
       new ros::Publisher(
           n.advertise < hiperlab_rostools::estimator_output
               > ("estimator" + std::to_string(_id), 1)));
+
   _pubCmd.reset(
       new ros::Publisher(
           n.advertise < hiperlab_rostools::radio_command
@@ -385,10 +416,14 @@ void ExampleVehicleStateMachine::Initialize(int id, std::string name,
               > ("controller_diagnostics", 10)));
 
 //set up components:
-  _est.reset(new MocapStateEstimator(timer, _id, systemLatencyTime));
+  _gpsEst.reset(new GPSIMUStateEstimator(timer, _id));
+  _mocapEst.reset(new MocapStateEstimator(timer, _id, systemLatencyTime));
+  _odometryEst.reset(new MocapStateEstimator(timer, _id, systemLatencyTime)); //Abuse of name here. We reuse MocapStateEstimator for odometry class as their update methods are same. 
+
   _systemLatencyTime = systemLatencyTime;
   _ctrl.reset(new QuadcopterController());
   _safetyNet.reset(new SafetyNet());
+  _safetyNet->SetSafeCorners(Vec3d(-100,-100,-2.0), Vec3d(100,100,20), 0.0);
 
   _flightStage = StageWaitForStart;
   _lastFlightStage = StageComplete;
@@ -406,12 +441,28 @@ void ExampleVehicleStateMachine::Initialize(int id, std::string name,
   double armLength = vehConsts.armLength;
   _physicalVehicleRadius = armLength * 2.0;
   _vehicleRadiusPlanning = armLength * 2.0 * 1.5;
-  _goalWorld = Vec3d(100.0, 0.0, 5.0);
   _depthCamAtt = Rotationd::FromEulerYPR(-90.0 * M_PI / 180.0, 0 * M_PI / 180.0,
                                          -90 * M_PI / 180.0);
 
-//  _imageReceiveLog.open("depthImageReceiver.csv");
-//  _plannedTrajLog.open("plannedTraj.csv");
+  //  _imageReceiveLog.open("depthImageReceiver.csv");
+  //  _plannedTrajLog.open("plannedTraj.csv");
+
+  //Reading first goal
+  //TODO This is not general!!!
+  _trajFile.open(trajectory_file.c_str(), ios::in);
+  string _trajLine;
+  if(getline(_trajFile,_trajLine)){
+    // first line exists
+    stringstream _trajLineSS(_trajLine);
+    string linePiece;
+    getline(_trajLineSS,linePiece,',');
+    _goalWorld.x = stof(linePiece);
+    getline(_trajLineSS,linePiece,',');
+    _goalWorld.y = stof(linePiece);
+    getline(_trajLineSS,linePiece,',');
+    _goalWorld.z = stof(linePiece);
+    cout << _name << "Initial waypoint = <" << _goalWorld.x << "," << _goalWorld.y << "," << _goalWorld.z << ">\n";
+  }
   cout << _name << "Created.\n";
 }
 
@@ -424,10 +475,9 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
   }
 
 // Get the current state estimate and publish to ROS
-  MocapStateEstimator::MocapEstimatedState estState = _est->GetPrediction(
-      _systemLatencyTime);
+  EstimatedState estState = EstGetState(_systemLatencyTime);
   _safetyNet->UpdateWithEstimator(estState,
-                                  _est->GetTimeSinceLastGoodMeasurement());
+                                  EstGetTimeSinceLastGoodMeasurement());
   PublishEstimate(estState);
 
 // Create radio message depending on the current flight stage
@@ -455,7 +505,7 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
         double const motorSpoolUpTime = 0.5;  //[s]
         double const spoolUpThrustByWeight = 0.25;  //[]
 
-        _est->SetPredictedValues(Vec3d(0, 0, 0), Vec3d(0, 0, 0));
+        EstSetPredictedValues(Vec3d(0, 0, 0), Vec3d(0, 0, 0));
         double cmdThrust = 9.81 * spoolUpThrustByWeight;
         Vec3d cmdAngVel(0, 0, 0);
         RadioTypes::RadioMessageDecoded::CreateRatesCommand(0, float(cmdThrust),
@@ -598,10 +648,11 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
           refAngVel = _estAtt.Inverse() * _trajAtt
               * _plannedTraj->GetOmega(t, 1.0 / loopRate);  // in Body Frame
           refThrust = _plannedTraj->GetThrust(t);
-
-//          Vec3d desired_direction_w = _goalWorld - _estPos;    // in World Frame
-//          _desiredYawAngle = atan2(desired_direction_w.y,
-//                                   desired_direction_w.x);  // atan2 to return -pi to pi
+        
+        // This block changes the desired yaw to towards the goal point
+         Vec3d desired_direction_w = _goalWorld - _estPos;    // in World Frame
+         _desiredYawAngle = atan2(desired_direction_w.y,
+                                  desired_direction_w.x);  // atan2 to return -pi to pi
         }
 
         cmdMsg = RunTrackingControllerAndUpdateEstimator(estState, refPos,
@@ -647,12 +698,45 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
       if (shouldStop) {
         _flightStage = StageLanding;
       }
+
+      // Changing waypoint
+      Vec3d desired_direction_w = _goalWorld - _estPos;
+      float dist_to_goal = desired_direction_w.GetNorm2();
+
+      // What to do if waypoint is reached
+      if (dist_to_goal < 1.0) {
+        string _trajLine;
+        if (getline(_trajFile,_trajLine)) {
+          // If intermediate waypoint is reached
+          cout << _name << "Waypoint reached.\n";
+
+          _lastGoal = _goalWorld;// store previous goal point
+          // Read waypint and set new goal
+          stringstream _trajLineSS(_trajLine);
+          string linePiece;
+          getline(_trajLineSS,linePiece,',');
+          _goalWorld.x = stof(linePiece);
+          getline(_trajLineSS,linePiece,',');
+          _goalWorld.y = stof(linePiece);
+          getline(_trajLineSS,linePiece,',');
+          _goalWorld.z = stof(linePiece);
+          cout << _name << "Waypoint updated to <" << _goalWorld.x << "," << _goalWorld.y << "," << _goalWorld.z << ">\n";
+
+        } else {
+          // If final goal is reached
+          cout << _name << "Final goal reached.\n";
+          _flightStage = StageLanding;
+        }
+      }
       break;
     }
 
     case StageLanding: {
       if (stageChange) {
         cout << _name << "Starting landing.\n";
+        _lastPos = _estPos;
+        _lastVel = _estVel;
+        // cout << "lastPos = <" << _lastPos.x << "," << _lastPos.y << "," << _lastPos.z << ">\n";
       }
 
       if (!_safetyNet->GetIsSafe()) {
@@ -664,8 +748,10 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
         double const getIntoActionTime = 2.0;  //[s]
         double frac = min(_stageTimer->GetSeconds<double>() / getIntoActionTime,
                           1.0);
+        
         Vec3d cmdPos = _lastPos
             + _stageTimer->GetSeconds<double>() * Vec3d(0, 0, -LANDING_SPEED);
+
         if (cmdPos.z < 0) {
           _flightStage = StageComplete;
         }
@@ -676,14 +762,14 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
       }
       break;
     }
+    
     case StageComplete: {
       if (stageChange) {
         cout << _name << "Landing complete. Idling.\n";
       }
 
       {
-        _est->SetPredictedValues(Vec3d(0, 0, 0), Vec3d(0, 0, 0));
-
+        EstSetPredictedValues(Vec3d(0, 0, 0), Vec3d(0, 0, 0));
         //Publish the commands:
         RadioTypes::RadioMessageDecoded::CreateIdleCommand(0, rawMsg);
         for (int i = 0; i < RadioTypes::RadioMessageDecoded::RAW_PACKET_SIZE;
@@ -722,13 +808,78 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
 
 }
 
-void ExampleVehicleStateMachine::PublishEstimate(
-    MocapStateEstimator::MocapEstimatedState estState) {
+EstimatedState ExampleVehicleStateMachine::EstGetState(double const dt){
+  switch (_estType) {
+    case MocapEstimator:
+        return _mocapEst->GetPrediction(dt);
+
+    case GPSEstimator:
+        return _gpsEst->GetCurrentEstimate();
+
+    case OdometryEstimator:
+        return _odometryEst->GetPrediction(dt);
+
+    default:
+        // You should decide on a default return value or perhaps throw an exception
+        throw std::runtime_error("Unknown estimator type!");
+  }
+}
+
+void ExampleVehicleStateMachine::EstSetPredictedValues(Vec3d angVel, Vec3d acceleration){
+  switch (_estType) {
+    case MocapEstimator:
+        return _mocapEst->SetPredictedValues(angVel, acceleration);
+
+    case GPSEstimator:
+        // Do nothing for the GPS estimator. It does not depend on commands.
+        return;
+
+    case OdometryEstimator:
+        return _odometryEst->SetPredictedValues(angVel, acceleration);
+    default:
+        // You should decide on a default return value or perhaps throw an exception
+        throw std::runtime_error("Unknown estimator type!");
+  }
+}
+
+unsigned ExampleVehicleStateMachine::EstGetID() const {
+  switch (_estType) {
+    case MocapEstimator:
+        return _mocapEst->GetID();
+
+    case GPSEstimator:
+        return _gpsEst->GetID();
+
+    case OdometryEstimator:
+        return _odometryEst->GetID();
+    default:
+        // You should decide on a default return value or perhaps throw an exception
+        throw std::runtime_error("Unknown estimator type!");
+  }
+}
+
+double ExampleVehicleStateMachine::EstGetTimeSinceLastGoodMeasurement() const {
+  switch (_estType) {
+    case MocapEstimator:
+        return _mocapEst->GetTimeSinceLastGoodMeasurement();
+
+    case GPSEstimator:
+        return _gpsEst->GetTimeSinceLastGoodMeasurement();
+
+    case OdometryEstimator:
+        return _odometryEst->GetTimeSinceLastGoodMeasurement();
+    default:
+        // You should decide on a default return value or perhaps throw an exception
+        throw std::runtime_error("Unknown estimator type!");
+  }
+}
+
+void ExampleVehicleStateMachine::PublishEstimate(EstimatedState estState) {
 // Publish the current state estimate
 
   hiperlab_rostools::estimator_output estOutMsg;
   estOutMsg.header.stamp = ros::Time::now();
-  estOutMsg.vehicleID = _est->GetID();
+  estOutMsg.vehicleID = EstGetID();
 
   estOutMsg.posx = estState.pos.x;
   estOutMsg.posy = estState.pos.y;
@@ -755,7 +906,7 @@ void ExampleVehicleStateMachine::PublishEstimate(
 }
 
 hiperlab_rostools::radio_command ExampleVehicleStateMachine::RunControllerAndUpdateEstimator(
-    MocapStateEstimator::MocapEstimatedState estState, Vec3d desPos,
+    EstimatedState estState, Vec3d desPos,
     Vec3d desVel, Vec3d desAcc) {
 // Run the rates controller
   Vec3d cmdAngVel;
@@ -763,8 +914,8 @@ hiperlab_rostools::radio_command ExampleVehicleStateMachine::RunControllerAndUpd
   _ctrl->Run(estState.pos, estState.vel, estState.att, desPos, desVel, desAcc,
              _cmdYawAngle, cmdAngVel, cmdThrust);
 
-//Tell the estimator:
-  _est->SetPredictedValues(
+  //Tell the estimator:
+  EstSetPredictedValues(
       cmdAngVel,
       (estState.att * Vec3d(0, 0, 1) * cmdThrust - Vec3d(0, 0, 9.81)));
 
@@ -786,7 +937,7 @@ hiperlab_rostools::radio_command ExampleVehicleStateMachine::RunControllerAndUpd
 }
 
 hiperlab_rostools::radio_command ExampleVehicleStateMachine::RunTrackingControllerAndUpdateEstimator(
-    MocapStateEstimator::MocapEstimatedState estState, Vec3d refPos,
+    EstimatedState estState, Vec3d refPos,
     Vec3d refVel, Vec3d refAcc, double refThrust, Vec3d refAngVel,
     double &cmdThrustOutput, Rotationf &cmdAttOutput, Vec3d &cmdAngVelOutput) {
 
@@ -802,8 +953,8 @@ hiperlab_rostools::radio_command ExampleVehicleStateMachine::RunTrackingControll
   cmdThrustOutput = cmdThrust;
   cmdAttOutput = cmdAtt;
   cmdAngVelOutput = cmdAngVel;
-//Tell the estimator:
-  _est->SetPredictedValues(
+  //Tell the estimator:
+  EstSetPredictedValues(
       cmdAngVel,
       (estState.att * Vec3d(0, 0, 1) * cmdThrust - Vec3d(0, 0, 9.81)));
 

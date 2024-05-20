@@ -25,12 +25,19 @@ ExampleVehicleStateMachine::ExampleVehicleStateMachine() {
   _lastYaw = 0;
 }
 
-void ExampleVehicleStateMachine::CallbackEstimator(
-    const hiperlab_rostools::mocap_output& msg) {
+void ExampleVehicleStateMachine::CallbackGPS(
+    const hiperlab_rostools::gps_output& msg) {
   if (_est->GetID() == msg.vehicleID) {
-    _est->UpdateWithMeasurement(
-        Vec3d(msg.posx, msg.posy, msg.posz),
-        Rotationd(msg.attq0, msg.attq1, msg.attq2, msg.attq3));
+    _est->UpdateWithMeasurement(Vec3d(msg.posx, msg.posy, msg.posz));
+  }
+}
+
+void ExampleVehicleStateMachine::CallbackIMU(
+    const hiperlab_rostools::imu_output& msg) {
+  if (_est->GetID() == msg.vehicleID) {
+    Vec3d accMeas(msg.accmeasx, msg.accmeasy, msg.accmeasz);
+    Vec3d gyroMeas(msg.gyromeasx, msg.gyromeasy, msg.gyromeasz);
+    _est->Predict(accMeas, gyroMeas);
   }
 }
 
@@ -48,17 +55,21 @@ void ExampleVehicleStateMachine::Initialize(int id, std::string name,
   ss << "[" << name << " (" << _id << ")]: ";
   _name = ss.str();
 
-  //set up networking stuff:
-  _subMocap.reset(
+  //set up ROS subscribers and publishers:
+  _subGPS.reset(
       new ros::Subscriber(
-          n.subscribe("mocap_output" + std::to_string(_id), 1,
-                      &ExampleVehicleStateMachine::CallbackEstimator, this)));
+          n.subscribe("gps_output" + std::to_string(_id), 1,
+                      &ExampleVehicleStateMachine::CallbackGPS, this)));
+
+  _subIMU.reset(
+      new ros::Subscriber(
+          n.subscribe("imu_output" + std::to_string(_id), 1,
+                      &ExampleVehicleStateMachine::CallbackIMU, this)));
 
   _subTelemetry.reset(
       new ros::Subscriber(
           n.subscribe("telemetry" + std::to_string(_id), 1,
                       &ExampleVehicleStateMachine::CallbackTelemetry, this)));
-
   _pubEstimate.reset(
       new ros::Publisher(
           n.advertise<hiperlab_rostools::estimator_output>(
@@ -69,14 +80,16 @@ void ExampleVehicleStateMachine::Initialize(int id, std::string name,
               "radio_command" + std::to_string(_id), 1)));
 
   //set up components:
-  _est.reset(new MocapStateEstimator(timer, _id, systemLatencyTime));
+
+  _est.reset(new GPSIMUStateEstimator(timer, _id));
   _systemLatencyTime = systemLatencyTime;
   _ctrl.reset(new QuadcopterController());
   _safetyNet.reset(new SafetyNet());
+  _safetyNet->SetSafeCorners(Vec3d(-100,-100,-2.0), Vec3d(100,100,20), 0.0);
+  _stageTimer.reset(new Timer(timer));
 
   _flightStage = StageWaitForStart;
   _lastFlightStage = StageComplete;
-  _stageTimer.reset(new Timer(timer));
 
   // Initialize control parameters
   Onboard::QuadcopterConstants::QuadcopterType quadcopterType =
@@ -100,8 +113,8 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
   }
 
   // Get the current state estimate and publish to ROS
-  EstimatedState estState = _est->GetPrediction(
-      _systemLatencyTime);
+  EstimatedState estState = _est->GetCurrentEstimate();
+
   _safetyNet->UpdateWithEstimator(estState,
                                   _est->GetTimeSinceLastGoodMeasurement());
   PublishEstimate(estState);
@@ -132,7 +145,6 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
         double const motorSpoolUpTime = 0.5;  //[s]
         double const spoolUpThrustByWeight = 0.25;  //[]
 
-        _est->SetPredictedValues(Vec3d(0, 0, 0), Vec3d(0, 0, 0));
         double cmdThrust = 9.81 * spoolUpThrustByWeight;
         Vec3d cmdAngVel(0, 0, 0);
         RadioTypes::RadioMessageDecoded::CreateRatesCommand(0, float(cmdThrust),
@@ -329,8 +341,6 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
       }
 
       {
-        _est->SetPredictedValues(Vec3d(0, 0, 0), Vec3d(0, 0, 0));
-
         //Publish the commands:
         RadioTypes::RadioMessageDecoded::CreateIdleCommand(0, rawMsg);
         for (int i = 0; i < RadioTypes::RadioMessageDecoded::RAW_PACKET_SIZE;
@@ -408,11 +418,6 @@ hiperlab_rostools::radio_command ExampleVehicleStateMachine::RunControllerAndUpd
   double cmdThrust;
   _ctrl->Run(estState.pos, estState.vel, estState.att, desPos, desVel, desAcc,
              _cmdYawAngle, cmdAngVel, cmdThrust);
-
-  //Tell the estimator:
-  _est->SetPredictedValues(
-      cmdAngVel,
-      (estState.att * Vec3d(0, 0, 1) * cmdThrust - Vec3d(0, 0, 9.81)));
 
   //Create and return the radio command
   uint8_t rawMsg[RadioTypes::RadioMessageDecoded::RAW_PACKET_SIZE];

@@ -11,7 +11,6 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <ctime>
-#include <opencv2/opencv.hpp>
 #include <random>
 #include <string>
 
@@ -23,8 +22,6 @@
 #include "Components/Simulation/CommunicationsDelay.hpp"
 
 #include <fstream>
-
-#include "hiperlab_rostools/mocap_output.h"
 #include "hiperlab_rostools/gps_output.h"
 #include "hiperlab_rostools/imu_output.h"
 #include "hiperlab_rostools/simulator_truth.h"
@@ -33,20 +30,10 @@
 #include <rosgraph_msgs/Clock.h>
 
 // AirSim includes
-#include "common/common_utils/FileSystem.hpp"
 #include <iostream> // for image saving
 
 // Code for image publisher
 #include "std_msgs/Bool.h"
-
-#include <image_transport/image_transport.h>
-#include <opencv2/highgui/highgui.hpp>
-#include <cv_bridge/cv_bridge.h>
-#include <sensor_msgs/image_encodings.h>
-
-// AirSim Clients
-#include "api/RpcLibClientBase.hpp"
-#include "vehicles/multirotor/api/MultirotorRpcLibClient.hpp"
 
 // Code for VIO
 #include <nav_msgs/Odometry.h>
@@ -65,7 +52,6 @@ class SimVehicle {
 
   std::shared_ptr<ros::Subscriber> subRadioCmd;
   std::shared_ptr<ros::Publisher> pubSimTruth;
-  std::shared_ptr<ros::Publisher> pubMoCap;
   std::shared_ptr<ros::Publisher> pubTelemetry;
   std::shared_ptr<ros::Publisher> pubImagePoll;
   std::shared_ptr<ros::Publisher> pubOdometry;
@@ -104,44 +90,6 @@ string toCSV(const Vec3<Real> v) {
 }
 
 int main(int argc, char **argv) {
-  ////////////////////////////////////////////////////////////////
-  //AirSim setup
-  ////////////////////////////////////////////////////////////////
-
-  // AirSim client setup
-  using namespace msr::airlib;
-  MultirotorRpcLibClient client("", 41451, 1);
-  client.confirmConnection();  // Need to have env open and running (press play)
-
-  auto initPosition = client.getMultirotorState().getPosition();
-  double const initX = initPosition.x();
-  double const initY = initPosition.y();
-
-  // aligns airsim cameras using openVINS json camera extrinsics
-  // set TCtoI in airsim
-  msr::airlib::Pose airsimPose;
-  msr::airlib::Twist airsimTwist;
-  msr::airlib::Kinematics::State airsimState;
-  airsimPose.position[0] = initX;
-  airsimPose.position[1] = initY;
-  airsimPose.position[2] = 0.0;
-  airsimPose.orientation.w() = 1.0;
-  airsimPose.orientation.x() = 0.0;
-  airsimPose.orientation.y() = 0.0;
-  airsimPose.orientation.z() = 0.0;
-
-  airsimTwist.linear[0] = 0.0;
-  airsimTwist.linear[1] = 0.0;
-  airsimTwist.linear[2] = 0.0;
-
-  airsimTwist.angular[0] = 0.0;
-  airsimTwist.angular[1] = 0.0;
-  airsimTwist.angular[2] = 0.0;
-
-  airsimState.pose = airsimPose;
-  airsimState.twist = airsimTwist;
-  client.simSetKinematics(airsimState, true);
-//  client.simSetVehiclePose(airsim_pose, true);
 
   ////////////////////////////////////////////////////////////////
   //ROS setup
@@ -180,11 +128,6 @@ int main(int argc, char **argv) {
           n.advertise<hiperlab_rostools::simulator_truth>(
               "simulator_truth" + std::to_string(vehicleId), 1)));
 
-  v->pubMoCap.reset(
-      new ros::Publisher(
-          n.advertise<hiperlab_rostools::mocap_output>(
-              "mocap_output" + std::to_string(vehicleId), 1)));
-
   v->pubGPS.reset(
       new ros::Publisher(
           n.advertise<hiperlab_rostools::gps_output>(
@@ -210,9 +153,6 @@ int main(int argc, char **argv) {
   v->pubSimTime.reset(
       new ros::Publisher(n.advertise<rosgraph_msgs::Clock>("/clock", 1)));
 
-//    image_transport::ImageTransport it(n);
-//    v->pubDepthImage.reset(
-//        new image_transport::Publisher(it.advertise("depthImage", 1)));
   cout << "Publisher setup.\n";
   vehicles.push_back(v);
 
@@ -221,13 +161,11 @@ int main(int argc, char **argv) {
   ////////////////////////////////////////////////////////////////
   //Basic timing:
   const double frequencySimulation = 500.0;  //run the simulation at this rate
-  const double frequencyMocapOutput = 200.0;  //[Hz] Ideally, 1/mocapOuptputFreq is a constant multiple of 1/frequencySimulation.
-  const double frequencyTelemetry = 100.0;  //[Hz] Ideally, 1/mocapOuptputFreq is a constant multiple of 1/frequencySimulation.
   const double frequencyDepthImage = 30.0;  //[Hz]
   const double frequencyOdometry = 250.0;  //[Hz] Update rate at 250Hz. 
-  const double frequencyGPSOutput = 100.0; //[Hz] Update rate at 100Hz
-  const double frequencyIMUOutput = 500.0; //[Hz] Update rate at 500Hz
-
+  const double frequencyGPSOutput = 200.0; //[Hz] Update rate at 100Hz.
+  const double frequencyTelemetry = 500.0; //[Hz] Update rate at 500Hz.
+  const double frequencyIMUOutput = 500.0; //[Hz] Update rate at 100Hz.
   HardwareTimer simTimer;
 
   //The communication transport delay:
@@ -299,13 +237,11 @@ int main(int argc, char **argv) {
   cout << "Starting simulation\n";
   Timer t(&simTimer);
   double timePrintNextInfo = 0;
-  double timePublishNextMocap = 0;
   double timePublishNextGPS = 0;
-  double timePublishNextIMU = 0;
   double timePublishNextTelemetry = 0;
+  double timePublishNextIMU = 0;
   double timePublishNextOdometry = 0;
   double timeGetNextDepthImage = 0;
-  unsigned imageCount = 0;
 
   ros::Rate loop_rate(frequencySimulation);
 
@@ -314,11 +250,12 @@ int main(int argc, char **argv) {
   //where we want the quadcopter to fly to:
   while (ros::ok()) {
     ros::spinOnce();
-
+    //want to fly a sinusoid:
 
     ros::Time currentTime(t.GetSeconds_f());  //Ros time takes floating point seconds
     v->simTimeMsg.clock = currentTime;
     v->pubSimTime->publish(v->simTimeMsg);  //Publish current time to roscore so simulated time is advanced
+
 
     for (auto v : vehicles) {
       v->vehicle->Run();
@@ -341,19 +278,10 @@ int main(int argc, char **argv) {
       //see if there are any new radio messages. We put this in {braces} for the scoped mutex trick
       std::lock_guard<std::mutex> guard(cmdRadioChannelMutex);
       if (v->cmdRadioChannel.queue->HaveNewMessage()) {
-
         v->vehicle->SetCommandRadioMsg(v->cmdRadioChannel.queue->GetMessage());
       }
     }
 
-    if (t.GetSeconds<double>() > timeGetNextDepthImage) {
-      std_msgs::Header pollTrigger;  // empty header
-      pollTrigger.seq = imageCount;  // user defined counter
-      pollTrigger.stamp = ros::Time::now();  // time
-      v->pubImagePoll->publish(pollTrigger);
-      timeGetNextDepthImage += 1.0 / frequencyDepthImage;
-      imageCount++;
-    }
 
     if (t.GetSeconds<double>() > timePublishNextOdometry) {
       timePublishNextOdometry += 1 / frequencyOdometry;
@@ -393,32 +321,6 @@ int main(int argc, char **argv) {
       v->pubOdometry->publish(OdometryOuMsg);
     }
 
-    if (t.GetSeconds<double>() > timePublishNextMocap) {
-      timePublishNextMocap += 1 / frequencyMocapOutput;
-      hiperlab_rostools::mocap_output mocapOutMsg;
-      mocapOutMsg.header.stamp = ros::Time::now();
-
-      mocapOutMsg.vehicleID = v->id;
-
-      //TODO: noise!
-      Vec3d measPos = v->vehicle->GetPosition();
-      Rotationd measAtt = v->vehicle->GetAttitude();
-
-      mocapOutMsg.posx = measPos.x;
-      mocapOutMsg.posy = measPos.y;
-      mocapOutMsg.posz = measPos.z;
-
-      mocapOutMsg.attq0 = measAtt[0];
-      mocapOutMsg.attq1 = measAtt[1];
-      mocapOutMsg.attq2 = measAtt[2];
-      mocapOutMsg.attq3 = measAtt[3];
-
-      measAtt.ToEulerYPR(mocapOutMsg.attyaw, mocapOutMsg.attpitch,
-                         mocapOutMsg.attroll);
-
-      v->pubMoCap->publish(mocapOutMsg);
-    }
-
     if (t.GetSeconds<double>() > timePublishNextGPS) {
       timePublishNextGPS += 1 / frequencyGPSOutput;
       hiperlab_rostools::gps_output gpsOutMsg;
@@ -433,25 +335,28 @@ int main(int argc, char **argv) {
       v->pubGPS->publish(gpsOutMsg);
     }
 
-
     if (t.GetSeconds<double>() > timePublishNextIMU) {
       timePublishNextIMU += 1 / frequencyIMUOutput;
       hiperlab_rostools::imu_output imuOutMsg;
       imuOutMsg.header.stamp = ros::Time::now();
       imuOutMsg.vehicleID = v->id;
-      
       Vec3d accMeasIMU;
+      
       v->vehicle->GetAccelerometer(accMeasIMU);
       Vec3d gyroMeasIMU;
+
       v->vehicle->GetRateGyro(gyroMeasIMU);
       imuOutMsg.accmeasx = accMeasIMU.x;
       imuOutMsg.accmeasy = accMeasIMU.y;
       imuOutMsg.accmeasz = accMeasIMU.z;
+
       imuOutMsg.gyromeasx = gyroMeasIMU.x;
       imuOutMsg.gyromeasy = gyroMeasIMU.y;
       imuOutMsg.gyromeasz = gyroMeasIMU.z;
       v->pubIMU->publish(imuOutMsg);
     }
+
+
 
     //Publish also the simulation truth:
     hiperlab_rostools::simulator_truth simTruthMsg;
@@ -478,27 +383,6 @@ int main(int argc, char **argv) {
 
     v->pubSimTruth->publish(simTruthMsg);
 
-    airsimPose.position[0] = simTruthMsg.posx + initX;
-    airsimPose.position[1] = -simTruthMsg.posy + initY;
-    airsimPose.position[2] = -simTruthMsg.posz;
-
-    airsimPose.orientation.w() = simTruthMsg.attq0;
-    airsimPose.orientation.x() = simTruthMsg.attq1;
-    airsimPose.orientation.y() = -simTruthMsg.attq2;
-    airsimPose.orientation.z() = -simTruthMsg.attq3;
-
-    airsimTwist.linear[0] = simTruthMsg.velx;
-    airsimTwist.linear[1] = -simTruthMsg.vely;
-    airsimTwist.linear[2] = -simTruthMsg.velz;
-
-    airsimTwist.angular[0] = simTruthMsg.angvelx;
-    airsimTwist.angular[1] = -simTruthMsg.angvely;
-    airsimTwist.angular[2] = -simTruthMsg.angvelz;
-
-    airsimState.pose = airsimPose;
-    airsimState.twist = airsimTwist;
-
-    client.simSetKinematics(airsimState, true);
 
     if (t.GetSeconds<double>() > timePublishNextTelemetry) {
       //Telemetry message
