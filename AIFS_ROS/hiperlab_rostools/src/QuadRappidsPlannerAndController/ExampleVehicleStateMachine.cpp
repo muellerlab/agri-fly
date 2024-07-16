@@ -356,10 +356,14 @@ void ExampleVehicleStateMachine::Initialize(int id, std::string name,
   ss << "[" << name << " (" << _id << ")]: ";
   _name = ss.str();
 
-//Set the trajectory file path:
-  n.getParam("traj_file", trajectory_file);
+  //Set the trajectory file path:
 
-//set up networking stuff:
+  if (n.getParam("quad_rappids_planner_controller/traj_file", trajectory_file)) {
+        std::cout << "Trajectory file name: " << trajectory_file << std::endl;
+    } else {
+        std::cerr << "Failed to get parameter 'traj_file'" << std::endl;
+    }
+  //set up networking stuff:
   _subMocap.reset(
       new ros::Subscriber(
           n.subscribe("mocap_output" + std::to_string(_id), 1,

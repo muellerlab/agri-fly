@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
     return -1;
   }
 
-  ros::init(argc, argv, "quad_rappids_rates_control" + std::to_string(vehicleId));
+  ros::init(argc, argv, "quad_rappids_planner_controller" + std::to_string(vehicleId));
 
   for (int i = 2; i < argc; i++) {
     if (!strcmp(argv[i], "--no-js")) {
