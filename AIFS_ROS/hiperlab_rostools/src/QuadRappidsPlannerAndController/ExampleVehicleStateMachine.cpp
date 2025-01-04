@@ -15,7 +15,7 @@ ExampleVehicleStateMachine::ExampleVehicleStateMachine() {
   _vehicleIsReadyForProgramToExit = false;
 
   _initPosition = Vec3d(0, 0, 0);
-  _desiredPosition = Vec3d(0, 0, 2.0);
+  _desiredPosition = Vec3d(0, 0, 0.5);
   _desiredYawAngle = 0.0;
   _cmdYawAngle = 0.0;
   _lastTelWarnings = 0;
@@ -44,7 +44,7 @@ ExampleVehicleStateMachine::ExampleVehicleStateMachine() {
   _minCollisionDist = 0.5;
   _plannedTrajDuration = 0;
   _lookAheadTime = 0.02;
-  _goalWorld = Vec3d(20.0, 0.0, 2.5);
+  _goalWorld = Vec3d(0.0, 0.0, 2.5);
   _lastGoal = _goalWorld;
   _depthImageCount = 0;
   _rgbImageCount = 0;
@@ -583,7 +583,7 @@ void ExampleVehicleStateMachine::Run(bool shouldStart, bool shouldStop) {
                                                  Vec3d(0, 0, 0));
       }
 
-      if (_stageTimer->GetSeconds<double>() > 3.0) {
+      if (_stageTimer->GetSeconds<double>() > 30.0) {
         _flightStage = StageFlight;
         _startPlan = true;
         cout << _name << "Start Rappids\n";

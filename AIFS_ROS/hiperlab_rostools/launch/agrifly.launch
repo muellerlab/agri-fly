@@ -1,6 +1,8 @@
 <launch>
     <!-- Define argument for trajectory file path -->
-    <arg name="trajectory_file_path" default="/default/path/to/trajectory.txt"/>
+    <!-- <arg name="trajectory_file_path" default="/default/path/to/trajectory.txt"/> -->
+    <arg name="trajectory_file_path" default="/home/teaya/Documents/Repos/LabCode/agri-fly/AIFS_ROS/hiperlab_rostools/src/QuadRappidsPlannerAndController/trajectory_hover.txt
+"/>
 
     <!-- Set ROS parameters -->
     <param name="use_sim_time" value="true"/>
